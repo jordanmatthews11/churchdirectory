@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Church Directory
 
-## Getting Started
+A private, admin-only web app for managing your church family directory. Built with Next.js 14, Supabase, and shadcn/ui.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Family profiles** — photo, mailing address, notes
+- **Member profiles** — headshot, name, role, bio, member since, phone, email
+- **Inline editing** — edit any field directly on the profile page
+- **Spreadsheet import** — drag & drop .xlsx or .csv, map columns visually, preview before importing
+- **Multi-admin auth** — invite staff by email via Supabase Auth
+- **Print-ready data** — structured for future PDF/print directory export
+
+## Setup
+
+### 1. Create a Supabase project
+
+Go to [supabase.com](https://supabase.com) → New project.
+
+### 2. Run the database migration
+
+In the Supabase dashboard → SQL Editor, paste and run the contents of:
+
+```
+supabase/migrations/001_initial.sql
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Create storage buckets
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+In Supabase → Storage, create two **public** buckets:
+- `family-photos`
+- `member-photos`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> Set both to public so images can be displayed without auth tokens.
 
-## Learn More
+### 4. Configure environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.local` and fill in your values from Supabase → Settings → API:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Keep this secret — server-only
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 5. Create your first admin
 
-## Deploy on Vercel
+In Supabase → Authentication → Users → Invite user, enter your email.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 6. Run locally
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000)
+
+## Deploy to Vercel
+
+1. Push this folder to a GitHub repo
+2. Import the repo in [vercel.com](https://vercel.com)
+3. Add the three environment variables from step 4
+4. Deploy
+
+## Spreadsheet Import Format
+
+Your spreadsheet can have columns in any order and any column names — you'll map them to fields after uploading. The required fields are:
+
+| Field | Required |
+|-------|----------|
+| Family Name | ✅ |
+| First Name | ✅ |
+| Last Name | ✅ |
+| Role (head/spouse/child/other) | — |
+| Street Address | — |
+| City | — |
+| State | — |
+| ZIP Code | — |
+| Phone | — |
+| Email | — |
+| Member Since (YYYY-MM-DD) | — |
+| Bio | — |
+
+Each row is one person. Members with the same Family Name will be grouped into the same family.
