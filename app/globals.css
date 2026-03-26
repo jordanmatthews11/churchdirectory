@@ -124,3 +124,124 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Printable Directory (booklet-style)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.directory-print-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35in;
+}
+
+.directory-page {
+  width: 8.5in; /* US Letter */
+  min-height: 11in;
+  box-sizing: border-box;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.break-after-page {
+  break-after: page;
+  page-break-after: always;
+}
+
+.directory-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 0.12in;
+  padding: 0.45in;
+}
+
+.directory-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.directory-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(15, 23, 42, 0.85);
+  background: #f1f5f9;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.directory-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.directory-photo-initials {
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f5132;
+}
+
+.directory-names {
+  margin-top: 0.12in;
+  width: 100%;
+  text-align: center;
+}
+
+.directory-family-name {
+  font-size: 10px;
+  font-weight: 900;
+  color: #0f5132;
+  line-height: 1.1;
+}
+
+.directory-member-names {
+  margin-top: 0.02in;
+  font-size: 8px;
+  color: #111827;
+  line-height: 1.2;
+  min-height: 0.35in;
+  white-space: pre-wrap;
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0;
+  }
+
+  /* Hide app chrome while printing */
+  header,
+  .print-hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000;
+  }
+
+  .directory-print-canvas {
+    gap: 0;
+  }
+
+  .directory-page {
+    border: 0;
+  }
+}

@@ -33,3 +33,12 @@ export const ROLE_LABELS: Record<MemberRole, string> = {
   child: 'Child',
   other: 'Other',
 }
+
+export interface DirectorySettings {
+  id: string
+  cover_image_url: string | null
+  title_image_url: string | null
+  intro_text: string
+  date_label: string
+  updated_at: string
+}

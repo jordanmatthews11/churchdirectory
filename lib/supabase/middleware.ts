@@ -30,8 +30,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isLoginPage = request.nextUrl.pathname === '/login'
+  const isOAuthCallback = request.nextUrl.pathname.startsWith('/auth/callback')
 
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isOAuthCallback) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

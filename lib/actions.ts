@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { Family, Member } from '@/types'
+import { DirectorySettings, Family, Member } from '@/types'
 
 // ─── Families ────────────────────────────────────────────────────────────────
 
@@ -103,6 +103,70 @@ export async function deleteMember(id: string, familyId: string): Promise<void> 
   const { error } = await supabase.from('members').delete().eq('id', id)
   if (error) throw error
   revalidatePath(`/families/${familyId}`)
+}
+
+// ─── Directory Settings ──────────────────────────────────────────────────────
+
+export async function getDirectorySettings(): Promise<DirectorySettings | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('directory_settings')
+    .select('*')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+
+  if (error) throw error
+  const row = data?.[0]
+  return row ?? null
+}
+
+export async function updateDirectorySettings(
+  values: Partial<Pick<DirectorySettings, 'cover_image_url' | 'title_image_url' | 'intro_text' | 'date_label'>>
+): Promise<DirectorySettings> {
+  const supabase = await createClient()
+
+  const current = await getDirectorySettings()
+
+  const nextValues = {
+    ...values,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (current) {
+    const { data, error } = await supabase
+      .from('directory_settings')
+      .update(nextValues)
+      .eq('id', current.id)
+      .select('*')
+      .single()
+
+    if (error) throw error
+    revalidatePath('/directory')
+    return data
+  }
+
+  const { data, error } = await supabase
+    .from('directory_settings')
+    .insert(nextValues)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  revalidatePath('/directory')
+  return data
+}
+
+// ─── Directory Grid Data ─────────────────────────────────────────────────────
+
+export async function getFamiliesWithMembers(): Promise<Family[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('families')
+    .select('*, members(*)')
+    .order('name')
+
+  if (error) throw error
+  return data ?? []
 }
 
 // ─── Spreadsheet Import ───────────────────────────────────────────────────────

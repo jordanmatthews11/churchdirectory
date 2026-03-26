@@ -47,6 +47,22 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Keep this secret — server-only
 
 In Supabase → Authentication → Users → Invite user, enter your email.
 
+### 5b. Google sign-in (optional)
+
+1. **Google Cloud Console** — Create an OAuth 2.0 Client ID (Web application). Under **Authorized redirect URIs**, add:
+   - `https://<your-project-ref>.supabase.co/auth/v1/callback`  
+     (`<your-project-ref>` is the subdomain in your Supabase project URL.)
+
+2. **Supabase** — Authentication → **Providers** → **Google**: enable and paste the **Client ID** and **Client secret**.
+
+3. **Supabase redirect URLs** — Authentication → **URL Configuration**:
+   - **Site URL**: your app origin (e.g. `http://localhost:3000` locally, or your production URL).
+   - **Redirect URLs**: add:
+     - `http://localhost:3000/auth/callback`
+     - `https://<your-production-domain>/auth/callback`
+
+After deploy, anyone who can complete Google OAuth gets a Supabase session. Your Row Level Security policies still gate data to the `authenticated` role; restrict who may sign in via **Supabase** (e.g. allowlist emails) if you need a closed admin set.
+
 ### 6. Run locally
 
 ```bash
