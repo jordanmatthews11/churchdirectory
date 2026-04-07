@@ -19,10 +19,35 @@ function fullName(m: Member): string {
     .join(' ')
 }
 
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? ''
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1]
+}
+
 /**
- * When `differentLastNames` is false: comma-separated first names.
- * When true: non-child members shown as "First Last" joined with "and",
- * children shown as first names only, comma-separated after.
+ * Returns the display name to use in place of the family last name.
+ * When `differentLastNames` is true, returns full names of non-child
+ * members joined with "and" (e.g. "Gene Wirth and Mary Degloyer").
+ * Returns null when the default family name should be used instead.
+ */
+export function formatFamilyDisplayName(
+  members: Member[] | undefined,
+  differentLastNames: boolean
+): string | null {
+  if (!differentLastNames) return null
+  const list = sortMembersForDisplay(members ?? [])
+  const nonChildren = list.filter((m) => m.role !== 'child')
+  const names = nonChildren.map(fullName).filter(Boolean)
+  if (names.length === 0) return null
+  return joinNames(names)
+}
+
+/**
+ * Returns the member line shown beneath the family name.
+ * When `differentLastNames` is false: all first names comma-separated.
+ * When true: only children's first names (non-children are already
+ * shown in the family name line via formatFamilyDisplayName).
  */
 export function formatMemberDisplayLine(
   members: Member[] | undefined,
@@ -35,26 +60,6 @@ export function formatMemberDisplayLine(
     return list.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
   }
 
-  const nonChildren = list.filter((m) => m.role !== 'child')
   const children = list.filter((m) => m.role === 'child')
-
-  const fullNames = nonChildren.map(fullName).filter(Boolean)
-  const childFirst = children.map((m) => m.first_name.trim()).filter(Boolean)
-
-  if (fullNames.length === 0) {
-    return list.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
-  }
-
-  let mainPart: string
-  if (fullNames.length === 1) {
-    mainPart = fullNames[0]
-  } else if (fullNames.length === 2) {
-    mainPart = `${fullNames[0]} and ${fullNames[1]}`
-  } else {
-    mainPart =
-      fullNames.slice(0, -1).join(', ') + ', and ' + fullNames[fullNames.length - 1]
-  }
-
-  if (childFirst.length === 0) return mainPart
-  return `${mainPart}, ${childFirst.join(', ')}`
+  return children.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
 }
