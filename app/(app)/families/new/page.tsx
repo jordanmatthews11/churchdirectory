@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { PhotoUpload } from '@/components/photo-upload'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -21,6 +22,7 @@ export default function NewFamilyPage() {
 
   const [form, setForm] = useState({
     name: '',
+    different_last_names: false,
     mailing_address: '',
     city: '',
     state: '',
@@ -43,6 +45,7 @@ export default function NewFamilyPage() {
     try {
       const family = await createFamily({
         name: form.name.trim(),
+        different_last_names: form.different_last_names,
         mailing_address: form.mailing_address || null,
         city: form.city || null,
         state: form.state || null,
@@ -155,6 +158,29 @@ export default function NewFamilyPage() {
                 onChange={(e) => update('notes', e.target.value)}
                 rows={3}
               />
+            </div>
+
+            <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50/80 p-3">
+              <Checkbox
+                id="different_last_names"
+                checked={form.different_last_names}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    different_last_names: checked === true,
+                  }))
+                }
+                className="mt-0.5"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <Label htmlFor="different_last_names" className="font-normal">
+                  Different last names
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Show full names for heads of household and spouses in the directory and on cards when
+                  members don&apos;t share the same surname.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

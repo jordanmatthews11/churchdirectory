@@ -1,6 +1,7 @@
 export interface Family {
   id: string
   name: string
+  different_last_names: boolean
   mailing_address: string | null
   city: string | null
   state: string | null

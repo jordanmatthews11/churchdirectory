@@ -26,6 +26,7 @@ export function DirectoryGrid({ families }: DirectoryGridProps) {
           cells.push({
             id: `placeholder-${pageIndex}-${cells.length}`,
             name: '',
+            different_last_names: false,
             mailing_address: null,
             city: null,
             state: null,

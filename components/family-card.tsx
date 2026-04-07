@@ -1,16 +1,21 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Users } from 'lucide-react'
-import { Family } from '@/types'
+import { Family, Member } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 interface FamilyCardProps {
-  family: Family & { members?: { id: string }[] }
+  family: Family & { members?: Member[] }
 }
 
 export function FamilyCard({ family }: FamilyCardProps) {
   const memberCount = family.members?.length ?? 0
+  const memberLine = formatMemberDisplayLine(
+    family.members,
+    family.different_last_names ?? false
+  )
   const location = [family.city, family.state].filter(Boolean).join(', ')
 
   return (
@@ -45,6 +50,9 @@ export function FamilyCard({ family }: FamilyCardProps) {
               {memberCount}
             </Badge>
           </div>
+          {memberLine && (
+            <p className="mt-1 text-sm font-medium text-blue-800/90">{memberLine}</p>
+          )}
           {location && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
               <MapPin className="h-3 w-3" />
