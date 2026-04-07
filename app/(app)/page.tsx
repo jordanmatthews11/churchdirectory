@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Plus, Upload, Users } from 'lucide-react'
-import { getFamiliesWithMembers } from '@/lib/actions'
+import { getFamilies } from '@/lib/actions'
 import { Button } from '@/components/ui/button'
 import { FamilyCard } from '@/components/family-card'
 import { FamilySearch } from '@/components/family-search'
@@ -13,7 +13,7 @@ export default async function DashboardPage({
   searchParams: Promise<{ q?: string }>
 }) {
   const { q } = await searchParams
-  const allFamilies = await getFamiliesWithMembers()
+  const allFamilies = await getFamilies()
   const families = q
     ? allFamilies.filter((f) =>
         f.name.toLowerCase().includes(q.toLowerCase())

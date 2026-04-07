@@ -38,7 +38,6 @@ export async function createFamily(
     .single()
   if (error) throw error
   revalidatePath('/')
-  revalidatePath('/directory')
   return data
 }
 
@@ -55,7 +54,6 @@ export async function updateFamily(
     .single()
   if (error) throw error
   revalidatePath('/')
-  revalidatePath('/directory')
   revalidatePath(`/families/${id}`)
   return data
 }
@@ -65,7 +63,6 @@ export async function deleteFamily(id: string): Promise<void> {
   const { error } = await supabase.from('families').delete().eq('id', id)
   if (error) throw error
   revalidatePath('/')
-  revalidatePath('/directory')
 }
 
 // ─── Members ─────────────────────────────────────────────────────────────────
@@ -80,8 +77,6 @@ export async function createMember(
     .select()
     .single()
   if (error) throw error
-  revalidatePath('/')
-  revalidatePath('/directory')
   revalidatePath(`/families/${values.family_id}`)
   return data
 }
@@ -99,8 +94,6 @@ export async function updateMember(
     .select()
     .single()
   if (error) throw error
-  revalidatePath('/')
-  revalidatePath('/directory')
   revalidatePath(`/families/${familyId}`)
   return data
 }
@@ -109,8 +102,6 @@ export async function deleteMember(id: string, familyId: string): Promise<void> 
   const supabase = await createClient()
   const { error } = await supabase.from('members').delete().eq('id', id)
   if (error) throw error
-  revalidatePath('/')
-  revalidatePath('/directory')
   revalidatePath(`/families/${familyId}`)
 }
 

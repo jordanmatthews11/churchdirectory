@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import { Family, Member } from '@/types'
-import { formatMemberDisplayLine } from '@/lib/member-display'
 
 export interface DirectoryCellProps {
   family: Family & { members?: Member[] }
@@ -20,10 +19,8 @@ function getInitials(name: string) {
 
 export function DirectoryCell({ family }: DirectoryCellProps) {
   const members = family.members ?? []
-  const memberLine = formatMemberDisplayLine(
-    members,
-    family.different_last_names ?? false
-  )
+  const memberNames = members.map((m) => m.first_name.trim()).filter(Boolean)
+  const memberLine = memberNames.join(', ')
 
   return (
     <div className="directory-cell">
