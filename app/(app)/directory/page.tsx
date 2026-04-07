@@ -154,6 +154,48 @@ async function proxyImagesToDataUrls(container: HTMLElement): Promise<() => void
   }
 }
 
+/**
+ * html2canvas ignores object-fit / object-position, stretching images to fill
+ * their container. Work around this by swapping each <img> inside
+ * .directory-photo with a <div> that uses background-image (which html2canvas
+ * does support). Must run after proxyImagesToDataUrls so src is same-origin.
+ */
+function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
+  const entries: { img: HTMLImageElement; replacement: HTMLDivElement }[] = []
+
+  const imgs = Array.from(
+    container.querySelectorAll<HTMLImageElement>('.directory-photo img')
+  )
+
+  for (const img of imgs) {
+    const fitMode = img.classList.contains('object-contain') ? 'contain' : 'cover'
+    const position = img.style.objectPosition || '50% 50%'
+
+    const div = document.createElement('div')
+    Object.assign(div.style, {
+      position: 'absolute',
+      inset: '0',
+      width: '100%',
+      height: '100%',
+      backgroundImage: `url(${img.src})`,
+      backgroundSize: fitMode,
+      backgroundPosition: position,
+      backgroundRepeat: 'no-repeat',
+    })
+
+    img.style.display = 'none'
+    img.parentElement!.appendChild(div)
+    entries.push({ img, replacement: div })
+  }
+
+  return () => {
+    for (const { img, replacement } of entries) {
+      replacement.remove()
+      img.style.display = ''
+    }
+  }
+}
+
 function createBlankPageCanvas(sample: HTMLCanvasElement): HTMLCanvasElement {
   const c = document.createElement('canvas')
   c.width = sample.width
@@ -214,6 +256,9 @@ export default function DirectoryPage() {
     // Convert cross-origin images to same-origin data URLs so html2canvas can render them.
     const restoreImages = await proxyImagesToDataUrls(container)
 
+    // Swap <img> tags for background-image <div>s so html2canvas respects object-fit.
+    const restoreBackgrounds = replaceImgsWithBackgrounds(container)
+
     // Inline computed RGB colors while original stylesheets are still active,
     // so getComputedStyle returns real colors (not the 'transparent' replacements).
     const restoreInlineStyles = inlineExportColors(container)
@@ -250,6 +295,7 @@ export default function DirectoryPage() {
     } finally {
       restoreStyles(inject, snapshots)
       restoreInlineStyles()
+      restoreBackgrounds()
       restoreImages()
     }
   }
