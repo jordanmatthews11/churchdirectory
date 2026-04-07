@@ -46,8 +46,8 @@ export function formatFamilyDisplayName(
 /**
  * Returns the member line shown beneath the family name.
  * When `differentLastNames` is false: all first names comma-separated.
- * When true: only children's first names (non-children are already
- * shown in the family name line via formatFamilyDisplayName).
+ * When true: non-child members as "First Last" joined with "and",
+ * then children's first names comma-separated after.
  */
 export function formatMemberDisplayLine(
   members: Member[] | undefined,
@@ -60,6 +60,17 @@ export function formatMemberDisplayLine(
     return list.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
   }
 
+  const nonChildren = list.filter((m) => m.role !== 'child')
   const children = list.filter((m) => m.role === 'child')
-  return children.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
+
+  const fullNames = nonChildren.map(fullName).filter(Boolean)
+  const childFirst = children.map((m) => m.first_name.trim()).filter(Boolean)
+
+  if (fullNames.length === 0) {
+    return list.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
+  }
+
+  const mainPart = joinNames(fullNames)
+  if (childFirst.length === 0) return mainPart
+  return `${mainPart}, ${childFirst.join(', ')}`
 }

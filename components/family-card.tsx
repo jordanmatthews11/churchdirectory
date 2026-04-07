@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { MapPin } from 'lucide-react'
 import { Family, Member } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
-import { formatFamilyDisplayName, formatMemberDisplayLine } from '@/lib/member-display'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 interface FamilyCardProps {
   family: Family & { members?: Member[] }
@@ -10,10 +10,6 @@ interface FamilyCardProps {
 
 export function FamilyCard({ family }: FamilyCardProps) {
   const location = [family.city, family.state].filter(Boolean).join(', ')
-  const displayName = formatFamilyDisplayName(
-    family.members,
-    family.different_last_names ?? false
-  )
   const memberNames = formatMemberDisplayLine(
     family.members,
     family.different_last_names ?? false
@@ -48,7 +44,7 @@ export function FamilyCard({ family }: FamilyCardProps) {
         <CardContent className="p-3">
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-slate-800 transition-colors group-hover:text-[#7A9C49]">
-              {displayName ?? family.name}
+              {family.name}
             </h3>
             <p className="mt-0.5 line-clamp-2 min-h-9 text-sm text-slate-500">
               {memberNames || 'No members'}

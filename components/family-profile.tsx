@@ -28,7 +28,7 @@ import { PhotoUpload } from '@/components/photo-upload'
 import { MemberCard } from '@/components/member-card'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
-import { formatFamilyDisplayName, formatMemberDisplayLine } from '@/lib/member-display'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 interface FamilyProfileProps {
   family: Family
@@ -287,15 +287,15 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                 </div>
               )}
               <div className="space-y-1.5">
-                <h2 className="text-xl font-bold text-slate-800">
-                  {formatFamilyDisplayName(sortedMembers, family.different_last_names ?? false) ?? `${family.name} Family`}
-                </h2>
-                {(() => {
-                  const memberLine = formatMemberDisplayLine(sortedMembers, family.different_last_names ?? false)
-                  return memberLine ? (
-                    <p className="text-sm text-[#4A6A2A]">{memberLine}</p>
-                  ) : null
-                })()}
+                <h2 className="text-xl font-bold text-slate-800">{family.name} Family</h2>
+                {sortedMembers.length > 0 && (
+                  <p className="text-sm text-[#4A6A2A]">
+                    {formatMemberDisplayLine(
+                      sortedMembers,
+                      family.different_last_names ?? false
+                    )}
+                  </p>
+                )}
                 <p className="text-xs text-slate-400">Family ID: {family.id}</p>
                 {fullAddress && (
                   <p className="flex items-start gap-1.5 text-sm text-slate-500">

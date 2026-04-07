@@ -1,7 +1,7 @@
 'use client'
 
 import { Family, Member } from '@/types'
-import { formatFamilyDisplayName, formatMemberDisplayLine } from '@/lib/member-display'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 export interface DirectoryCellProps {
   family: Family & { members?: Member[] }
@@ -19,9 +19,10 @@ function getInitials(name: string) {
 
 export function DirectoryCell({ family }: DirectoryCellProps) {
   const members = family.members ?? []
-  const diff = family.different_last_names ?? false
-  const displayName = formatFamilyDisplayName(members, diff)
-  const memberLine = formatMemberDisplayLine(members, diff)
+  const memberLine = formatMemberDisplayLine(
+    members,
+    family.different_last_names ?? false
+  )
 
   if (!family.name && !memberLine) {
     return <div className="directory-cell" style={{ visibility: 'hidden' }} />
@@ -50,7 +51,7 @@ export function DirectoryCell({ family }: DirectoryCellProps) {
       </div>
 
       <div className="directory-names">
-        <div className="directory-family-name">{displayName ?? (family.name || '\u00A0')}</div>
+        <div className="directory-family-name">{family.name || '\u00A0'}</div>
         <div className="directory-member-names">{memberLine || '\u00A0'}</div>
       </div>
     </div>
