@@ -88,7 +88,7 @@ export function AdminsManager({ initialAdmins }: AdminsManagerProps) {
             <div className="flex items-end">
               <Button
                 type="submit"
-                className="bg-blue-700 hover:bg-blue-800"
+                className="bg-[#7A9C49] hover:bg-[#6B8A3D]"
                 disabled={inviting}
               >
                 {inviting ? (

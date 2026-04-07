@@ -1,62 +1,95 @@
-import { createClient } from '@/lib/supabase/client'
-
 export type PhotoBucket = 'family-photos' | 'member-photos'
 export type DirectoryAssetBucket = 'directory-assets'
+
+interface JsonLike {
+  error?: string
+  url?: string
+}
+
+function parseJsonLike(bodyText: string): JsonLike | null {
+  const trimmed = bodyText.trim()
+  if (!trimmed) return null
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null
+  try {
+    return JSON.parse(trimmed) as JsonLike
+  } catch {
+    return null
+  }
+}
+
+function normalizeStorageError(bodyText: string, fallback: string): string {
+  const text = bodyText.trim()
+  if (!text) return fallback
+
+  if (/request entity too large|payload too large|413/i.test(text)) {
+    return 'Image is too large. Please upload a smaller file.'
+  }
+  if (/supabase environment variables are missing|configuration required/i.test(text)) {
+    return 'Storage is not configured correctly. Please contact an administrator.'
+  }
+  if (/^<!doctype html>/i.test(text) || /^<html/i.test(text)) {
+    return fallback
+  }
+  return text
+}
+
+async function r2Upload(key: string, file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('key', key)
+
+  const res = await fetch('/api/storage', { method: 'POST', body: form })
+  const bodyText = await res.text()
+  const json = parseJsonLike(bodyText)
+
+  if (!res.ok) {
+    throw new Error(
+      json?.error ? json.error : normalizeStorageError(bodyText, 'Photo upload failed. Please try again.')
+    )
+  }
+  if (!json?.url) {
+    throw new Error(normalizeStorageError(bodyText, 'Upload succeeded but did not return a file URL.'))
+  }
+  return json.url
+}
+
+async function r2Delete(url: string): Promise<void> {
+  const res = await fetch('/api/storage', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}))
+    throw new Error((json as { error?: string }).error ?? 'Delete failed')
+  }
+}
 
 export async function uploadPhoto(
   bucket: PhotoBucket,
   file: File,
-  id: string
+  id: string,
 ): Promise<string> {
-  const supabase = createClient()
-  const ext = file.name.split('.').pop()
-  const path = `${id}/${Date.now()}.${ext}`
-
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    upsert: true,
-    contentType: file.type,
-  })
-  if (error) throw error
-
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const key = `${bucket}/${id}/${Date.now()}.${ext}`
+  return r2Upload(key, file)
 }
 
-export async function deletePhoto(bucket: PhotoBucket, url: string): Promise<void> {
-  const supabase = createClient()
-  // Extract path from public URL
-  const parts = url.split(`/${bucket}/`)
-  if (parts.length < 2) return
-  const path = parts[1]
-  await supabase.storage.from(bucket).remove([path])
+export async function deletePhoto(_bucket: PhotoBucket, url: string): Promise<void> {
+  return r2Delete(url)
 }
 
-export type DirectoryAssetKind = 'cover' | 'title'
+export type DirectoryAssetKind = 'cover' | 'title' | 'logo'
 
 export async function uploadDirectoryAsset(
   file: File,
   kind: DirectoryAssetKind,
 ): Promise<string> {
-  const supabase = createClient()
-  const bucket: DirectoryAssetBucket = 'directory-assets'
-  const ext = file.name.split('.').pop() || 'png'
-  const path = `${kind}/${Date.now()}.${ext}`
-
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    upsert: true,
-    contentType: file.type,
-  })
-  if (error) throw error
-
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
+  const ext = file.name.split('.').pop() ?? 'png'
+  const key = `directory-assets/${kind}/${Date.now()}.${ext}`
+  return r2Upload(key, file)
 }
 
 export async function deleteDirectoryAsset(url: string): Promise<void> {
-  const supabase = createClient()
-  const bucket: DirectoryAssetBucket = 'directory-assets'
-  const parts = url.split(`/${bucket}/`)
-  if (parts.length < 2) return
-  const path = parts[1]
-  await supabase.storage.from(bucket).remove([path])
+  return r2Delete(url)
 }

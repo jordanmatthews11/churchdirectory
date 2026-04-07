@@ -1,49 +1,53 @@
 import Link from 'next/link'
-import Image from 'next/image'
-import { MapPin, Users } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { Family } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 interface FamilyCardProps {
-  family: Family & { members?: { id: string }[] }
+  family: Family & { members?: { id: string; first_name: string }[] }
 }
 
 export function FamilyCard({ family }: FamilyCardProps) {
-  const memberCount = family.members?.length ?? 0
   const location = [family.city, family.state].filter(Boolean).join(', ')
+  const memberNames = (family.members ?? [])
+    .map((member) => member.first_name?.trim())
+    .filter(Boolean)
+    .join(', ')
 
   return (
     <Link href={`/families/${family.id}`}>
       <Card className="group h-full overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5">
-        <div className="relative h-32 bg-gradient-to-br from-blue-50 to-slate-100">
+        <div className="flex items-center justify-center bg-gradient-to-br from-[#F4F4EC] to-slate-100 p-3">
           {family.photo_url ? (
-            <Image
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
               src={family.photo_url}
               alt={`${family.name} family`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className={`max-h-44 w-full rounded ${
+                (family.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'
+              }`}
+              style={{
+                objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
+              }}
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-28 items-center justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
-                <span className="text-2xl font-bold text-blue-700">
+                <span className="text-2xl font-bold text-[#7A9C49]">
                   {family.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
           )}
         </div>
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
-              {family.name} Family
+        <CardContent className="p-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-semibold text-slate-800 transition-colors group-hover:text-[#7A9C49]">
+              {family.name}
             </h3>
-            <Badge variant="secondary" className="shrink-0 text-xs">
-              <Users className="mr-1 h-3 w-3" />
-              {memberCount}
-            </Badge>
+            <p className="mt-0.5 line-clamp-2 min-h-9 text-sm text-slate-500">
+              {memberNames || 'No members'}
+            </p>
           </div>
           {location && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">

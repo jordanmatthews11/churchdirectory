@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { Plus, Upload, Users } from 'lucide-react'
-import { getFamilies } from '@/lib/actions'
+import { getFamiliesWithMembers } from '@/lib/actions'
 import { Button } from '@/components/ui/button'
 import { FamilyCard } from '@/components/family-card'
 import { FamilySearch } from '@/components/family-search'
+import { ExportFamiliesButton } from '@/components/export-families-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export default async function DashboardPage({
   searchParams: Promise<{ q?: string }>
 }) {
   const { q } = await searchParams
-  const allFamilies = await getFamilies()
+  const allFamilies = await getFamiliesWithMembers()
   const families = q
     ? allFamilies.filter((f) =>
         f.name.toLowerCase().includes(q.toLowerCase())
@@ -30,13 +31,14 @@ export default async function DashboardPage({
           </p>
         </div>
         <div className="flex gap-2">
+          <ExportFamiliesButton families={allFamilies} />
           <Button asChild variant="outline" size="sm">
             <Link href="/import">
               <Upload className="mr-2 h-4 w-4" />
               Import
             </Link>
           </Button>
-          <Button asChild size="sm" className="bg-blue-700 hover:bg-blue-800">
+          <Button asChild size="sm" className="bg-[#7A9C49] hover:bg-[#6B8A3D]">
             <Link href="/families/new">
               <Plus className="mr-2 h-4 w-4" />
               Add Family
@@ -68,7 +70,7 @@ export default async function DashboardPage({
                   Import spreadsheet
                 </Link>
               </Button>
-              <Button asChild size="sm" className="bg-blue-700 hover:bg-blue-800">
+              <Button asChild size="sm" className="bg-[#7A9C49] hover:bg-[#6B8A3D]">
                 <Link href="/families/new">
                   <Plus className="mr-2 h-4 w-4" />
                   Add family
@@ -78,7 +80,7 @@ export default async function DashboardPage({
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {families.map((family) => (
             <FamilyCard key={family.id} family={family} />
           ))}

@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { Family, Member } from '@/types'
 
 export interface DirectoryCellProps {
@@ -22,11 +21,25 @@ export function DirectoryCell({ family }: DirectoryCellProps) {
   const memberNames = members.map((m) => m.first_name.trim()).filter(Boolean)
   const memberLine = memberNames.join(', ')
 
+  if (!family.name && memberNames.length === 0) {
+    return <div className="directory-cell" style={{ visibility: 'hidden' }} />
+  }
+
   return (
     <div className="directory-cell">
       <div className="directory-photo">
         {family.photo_url ? (
-          <Image src={family.photo_url} alt={`${family.name} photo`} fill className="object-cover" sizes="80px" />
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={family.photo_url}
+            alt={`${family.name} photo`}
+            className={`absolute inset-0 h-full w-full ${
+              (family.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'
+            }`}
+            style={{
+              objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
+            }}
+          />
         ) : (
           <div className="directory-photo-placeholder">
             <span className="directory-photo-initials">{getInitials(family.name)}</span>

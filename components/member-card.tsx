@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
@@ -39,11 +38,16 @@ interface MemberCardProps {
 }
 
 const roleBadgeColors: Record<MemberRole, string> = {
-  head: 'bg-blue-100 text-blue-700',
-  spouse: 'bg-purple-100 text-purple-700',
+  adult: 'bg-[#F4F4EC] text-[#7A9C49]',
   child: 'bg-green-100 text-green-700',
   other: 'bg-slate-100 text-slate-600',
 }
+
+const ROLE_OPTIONS: Array<{ value: MemberRole; label: string }> = [
+  { value: 'adult', label: 'Adult' },
+  { value: 'child', label: 'Child' },
+  { value: 'other', label: 'Other' },
+]
 
 export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardProps) {
   const [editing, setEditing] = useState(false)
@@ -57,9 +61,12 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
     phone: member.phone ?? '',
     email: member.email ?? '',
     photo_url: member.photo_url ?? '',
+    photo_fit: member.photo_fit ?? 'cover',
+    photo_position_x: member.photo_position_x ?? 50,
+    photo_position_y: member.photo_position_y ?? 50,
   })
 
-  function update(field: string, value: string) {
+  function update(field: string, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -79,12 +86,15 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
         phone: form.phone || null,
         email: form.email || null,
         photo_url: form.photo_url || null,
+        photo_fit: form.photo_fit,
+        photo_position_x: form.photo_position_x,
+        photo_position_y: form.photo_position_y,
       })
       onUpdate(updated)
       setEditing(false)
       toast.success('Member updated')
-    } catch {
-      toast.error('Failed to save changes')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save changes')
     } finally {
       setSaving(false)
     }
@@ -100,6 +110,9 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
       phone: member.phone ?? '',
       email: member.email ?? '',
       photo_url: member.photo_url ?? '',
+      photo_fit: member.photo_fit ?? 'cover',
+      photo_position_x: member.photo_position_x ?? 50,
+      photo_position_y: member.photo_position_y ?? 50,
     })
     setEditing(false)
   }
@@ -123,7 +136,15 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
               bucket="member-photos"
               entityId={member.id}
               currentUrl={form.photo_url || null}
-              onUpload={(url) => update('photo_url', url)}
+              currentFit={form.photo_fit}
+              currentPositionX={form.photo_position_x}
+              currentPositionY={form.photo_position_y}
+              onUpload={(url, presentation) => {
+                update('photo_url', url)
+                update('photo_fit', presentation.fit)
+                update('photo_position_x', presentation.positionX)
+                update('photo_position_y', presentation.positionY)
+              }}
               onRemove={() => update('photo_url', '')}
               size="md"
               shape="circle"
@@ -153,7 +174,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                  {ROLE_OPTIONS.map(({ value, label }) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
@@ -213,7 +234,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
               </Button>
               <Button
                 size="sm"
-                className="flex-1 bg-blue-700 hover:bg-blue-800"
+                className="flex-1 bg-[#7A9C49] hover:bg-[#6B8A3D]"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -241,7 +262,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
                     roleBadgeColors[member.role as MemberRole] ?? roleBadgeColors.other
                   }`}
                 >
-                  {ROLE_LABELS[member.role as MemberRole] ?? member.role}
+                  {ROLE_LABELS[member.role as MemberRole] ?? 'Other'}
                 </span>
               </div>
               <div className="flex shrink-0 gap-1">
@@ -304,7 +325,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
                   <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                   <a
                     href={`tel:${member.phone}`}
-                    className="hover:text-blue-700 hover:underline"
+                    className="hover:text-[#7A9C49] hover:underline"
                   >
                     {member.phone}
                   </a>
@@ -315,7 +336,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
                   <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                   <a
                     href={`mailto:${member.email}`}
-                    className="truncate hover:text-blue-700 hover:underline"
+                    className="truncate hover:text-[#7A9C49] hover:underline"
                   >
                     {member.email}
                   </a>
@@ -343,15 +364,18 @@ function MemberAvatar({ member }: { member: Member }) {
         <img
           src={member.photo_url}
           alt={`${member.first_name} ${member.last_name}`}
-          className="h-full w-full object-cover"
+          className={`h-full w-full ${(member.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'}`}
+          style={{
+            objectPosition: `${member.photo_position_x ?? 50}% ${member.photo_position_y ?? 50}%`,
+          }}
         />
       </div>
     )
   }
   const initials = `${member.first_name.charAt(0)}${member.last_name.charAt(0)}`.toUpperCase()
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100">
-      <span className="text-sm font-semibold text-blue-700">{initials}</span>
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F4F4EC]">
+      <span className="text-sm font-semibold text-[#7A9C49]">{initials}</span>
     </div>
   )
 }

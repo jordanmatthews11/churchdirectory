@@ -25,6 +25,14 @@ In the Supabase dashboard → SQL Editor, paste and run the contents of:
 supabase/migrations/001_initial.sql
 ```
 
+**Photo fit/crop (if you use family/member photo display settings):** after pulling newer code, also run:
+
+```
+supabase/migrations/006_photo_fit_and_position.sql
+```
+
+See [docs/supabase-migration-006-photo-presentation.md](docs/supabase-migration-006-photo-presentation.md) for when and how to apply it on production.
+
 ### 3. Create storage buckets
 
 In Supabase → Storage, create two **public** buckets:

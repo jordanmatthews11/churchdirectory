@@ -32,7 +32,7 @@ export default async function FamilyPage({ params }: PageProps) {
             {(family.members?.length ?? 0) === 1 ? 'member' : 'members'}
           </p>
         </div>
-        <Button asChild size="sm" className="bg-blue-700 hover:bg-blue-800">
+        <Button asChild size="sm" className="bg-[#7A9C49] hover:bg-[#6B8A3D]">
           <Link href={`/families/${id}/members/new`}>
             <Plus className="mr-2 h-4 w-4" />
             Add Member

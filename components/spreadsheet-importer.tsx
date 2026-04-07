@@ -8,6 +8,7 @@ import { importRows, ImportRow } from '@/lib/actions'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -18,13 +19,35 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-type Step = 'upload' | 'map' | 'preview' | 'done'
+type Step = 'upload' | 'map' | 'review' | 'preview' | 'done'
+type ImportMode = 'standard' | 'directory'
+
+interface DirectoryMemberDraft {
+  first_name: string
+  last_name: string
+  needs_review: boolean
+  override_approved: boolean
+  review_reason?: string
+}
+
+interface DirectoryFamilyDraft {
+  import_id: string
+  family_name: string
+  source_value: string
+  members: DirectoryMemberDraft[]
+}
+
+type PreviewRow = ImportRow & { import_id?: string }
+
+const DIRECTORY_SPLIT = /\s*[—–-]\s*/
+const DIRECTORY_FORMAT_MATCH = /^.+\s*[—–-]\s*.+$/
 
 const IMPORT_FIELDS: { key: keyof ImportRow; label: string; required: boolean }[] = [
+  { key: 'family_id', label: 'Family ID (optional UUID)', required: false },
   { key: 'family_name', label: 'Family Name', required: true },
   { key: 'first_name', label: 'First Name', required: true },
   { key: 'last_name', label: 'Last Name', required: true },
-  { key: 'role', label: 'Role (head/spouse/child/other)', required: false },
+  { key: 'role', label: 'Role (adult/child/other)', required: false },
   { key: 'mailing_address', label: 'Street Address', required: false },
   { key: 'city', label: 'City', required: false },
   { key: 'state', label: 'State', required: false },
@@ -35,15 +58,107 @@ const IMPORT_FIELDS: { key: keyof ImportRow; label: string; required: boolean }[
   { key: 'bio', label: 'Bio', required: false },
 ]
 
+function normalizeDirectoryNames(value: string): string {
+  return value.replace(/\(\s*and\s+([^)]+)\)/gi, ' and $1').replace(/\s+/g, ' ').trim()
+}
+
+function splitNameParts(value: string): string[] {
+  return value.split(/\s+/).filter(Boolean)
+}
+
+function endsWithFamilyName(candidate: string, familyName: string): boolean {
+  const candidateParts = splitNameParts(candidate.toLowerCase())
+  const familyParts = splitNameParts(familyName.toLowerCase())
+  if (candidateParts.length < familyParts.length) return false
+
+  const tail = candidateParts.slice(candidateParts.length - familyParts.length)
+  return tail.join(' ') === familyParts.join(' ')
+}
+
+function parseDirectoryMember(rawSegment: string, familyName: string): DirectoryMemberDraft {
+  const segment = rawSegment.replace(/\s+/g, ' ').trim()
+  if (!segment) {
+    return {
+      first_name: '',
+      last_name: familyName,
+      needs_review: true,
+      override_approved: false,
+      review_reason: 'Empty name segment',
+    }
+  }
+
+  const parts = splitNameParts(segment)
+  if (parts.length === 1) {
+    return { first_name: parts[0], last_name: familyName, needs_review: false, override_approved: false }
+  }
+
+  if (endsWithFamilyName(segment, familyName)) {
+    const familyPartCount = splitNameParts(familyName).length
+    const firstName = parts.slice(0, parts.length - familyPartCount).join(' ').trim()
+    return {
+      first_name: firstName,
+      last_name: familyName,
+      needs_review: firstName.length === 0,
+      override_approved: false,
+      review_reason: firstName.length === 0 ? 'Missing first name before family name' : undefined,
+    }
+  }
+
+  return {
+    first_name: parts.slice(0, -1).join(' '),
+    last_name: parts[parts.length - 1],
+    needs_review: true,
+    override_approved: false,
+    review_reason: `Last name "${parts[parts.length - 1]}" differs from family "${familyName}"`,
+  }
+}
+
+function parseDirectoryEntry(value: string): Omit<DirectoryFamilyDraft, 'import_id'> | null {
+  const normalized = normalizeDirectoryNames(value)
+  if (!DIRECTORY_FORMAT_MATCH.test(normalized)) return null
+
+  const pieces = normalized.split(DIRECTORY_SPLIT)
+  if (pieces.length !== 2) return null
+
+  const familyName = pieces[0].trim()
+  const namesPart = pieces[1].trim()
+  if (!familyName || !namesPart) return null
+
+  const segments = namesPart
+    .split(/\s+and\s+|,\s*/i)
+    .map((v) => v.trim())
+    .filter(Boolean)
+  if (segments.length === 0) return null
+
+  return {
+    family_name: familyName,
+    source_value: value,
+    members: segments.map((segment) => parseDirectoryMember(segment, familyName)),
+  }
+}
+
+function convertDirectoryDraftToImportRows(drafts: DirectoryFamilyDraft[]): PreviewRow[] {
+  return drafts.flatMap((family) =>
+    family.members.map((member) => ({
+      import_id: family.import_id,
+      family_name: family.family_name.trim(),
+      first_name: member.first_name.trim(),
+      last_name: member.last_name.trim(),
+    }))
+  )
+}
+
 export function SpreadsheetImporter() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('upload')
+  const [importMode, setImportMode] = useState<ImportMode | null>(null)
   const [dragging, setDragging] = useState(false)
   const [fileName, setFileName] = useState('')
   const [headers, setHeaders] = useState<string[]>([])
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([])
+  const [directoryDrafts, setDirectoryDrafts] = useState<DirectoryFamilyDraft[]>([])
   const [mapping, setMapping] = useState<Partial<Record<keyof ImportRow, string>>>({})
-  const [mappedRows, setMappedRows] = useState<ImportRow[]>([])
+  const [mappedRows, setMappedRows] = useState<PreviewRow[]>([])
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null)
 
@@ -53,21 +168,86 @@ export function SpreadsheetImporter() {
       try {
         const data = new Uint8Array(e.target!.result as ArrayBuffer)
         const workbook = XLSX.read(data, { type: 'array', dateNF: 'yyyy-mm-dd' })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const json: Record<string, string>[] = XLSX.utils.sheet_to_json(sheet, {
-          raw: false,
-          dateNF: 'yyyy-mm-dd',
+        setFileName(file.name)
+
+        const sheetMatrices = workbook.SheetNames.map((sheetName) => ({
+          sheetName,
+          matrix: XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+            header: 1,
+            raw: false,
+            dateNF: 'yyyy-mm-dd',
+            defval: '',
+          }) as string[][],
+        }))
+
+        // Detect "LastName — Names" directory format across all sheets/columns.
+        let bestSheetIndex = -1
+        let bestCol = -1
+        let bestRatio = 0
+
+        sheetMatrices.forEach(({ matrix }, sheetIdx) => {
+          for (let colIdx = 0; colIdx < 8; colIdx++) {
+            const values = matrix
+              .map((row) => String(row[colIdx] ?? '').trim())
+              .filter(Boolean)
+            if (values.length < 20) continue
+            const matches = values.filter((value) => DIRECTORY_FORMAT_MATCH.test(value)).length
+            const ratio = matches / values.length
+            if (ratio > bestRatio) {
+              bestRatio = ratio
+              bestCol = colIdx
+              bestSheetIndex = sheetIdx
+            }
+          }
         })
 
-        if (json.length === 0) {
+        if (bestSheetIndex >= 0 && bestCol >= 0 && bestRatio >= 0.7) {
+          const bestMatrix = sheetMatrices[bestSheetIndex].matrix
+          const parsed = bestMatrix
+            .map((row) => String(row[bestCol] ?? '').trim())
+            .filter(Boolean)
+            .map((value) => parseDirectoryEntry(value))
+            .filter((entry): entry is Omit<DirectoryFamilyDraft, 'import_id'> => entry !== null)
+            .map((entry, idx) => ({
+              ...entry,
+              import_id: `FAM-${String(idx + 1).padStart(3, '0')}`,
+            }))
+
+          if (parsed.length > 0) {
+            setImportMode('directory')
+            setDirectoryDrafts(parsed)
+            setStep('review')
+            return
+          }
+        }
+
+        const matrix = sheetMatrices[0]?.matrix ?? []
+        if (matrix.length === 0) {
           toast.error('The spreadsheet appears to be empty')
           return
         }
 
-        const cols = Object.keys(json[0])
+        const firstRow = matrix[0] ?? []
+        const cols = firstRow.map((value, idx) => String(value || `Column ${idx + 1}`).trim())
+        const json: Record<string, string>[] = matrix
+          .slice(1)
+          .map((row) => {
+            const obj: Record<string, string> = {}
+            cols.forEach((col, idx) => {
+              obj[col] = String(row[idx] ?? '').trim()
+            })
+            return obj
+          })
+          .filter((row) => Object.values(row).some((value) => value !== ''))
+
+        if (json.length === 0) {
+          toast.error('No data rows found below the header row.')
+          return
+        }
+
+        setImportMode('standard')
         setHeaders(cols)
         setRawRows(json)
-        setFileName(file.name)
 
         // Auto-map columns by fuzzy name match
         const autoMap: Partial<Record<keyof ImportRow, string>> = {}
@@ -127,6 +307,78 @@ export function SpreadsheetImporter() {
     setStep('preview')
   }
 
+  function updateDirectoryMember(
+    familyIndex: number,
+    memberIndex: number,
+    key: 'first_name' | 'last_name',
+    value: string
+  ) {
+    setDirectoryDrafts((prev) =>
+      prev.map((family, fIdx) => {
+        if (fIdx !== familyIndex) return family
+        return {
+          ...family,
+          members: family.members.map((member, mIdx) => {
+            if (mIdx !== memberIndex) return member
+            const next = { ...member, [key]: value.trimStart() }
+            if (next.first_name.trim() && next.last_name.trim()) {
+              next.needs_review = false
+              next.override_approved = false
+              next.review_reason = undefined
+            } else {
+              next.needs_review = true
+              next.override_approved = false
+              next.review_reason = 'First and last name are both required'
+            }
+            return next
+          }),
+        }
+      })
+    )
+  }
+
+  function toggleOverrideApproval(familyIndex: number, memberIndex: number, approved: boolean) {
+    setDirectoryDrafts((prev) =>
+      prev.map((family, fIdx) => {
+        if (fIdx !== familyIndex) return family
+        return {
+          ...family,
+          members: family.members.map((member, mIdx) => {
+            if (mIdx !== memberIndex) return member
+            return {
+              ...member,
+              override_approved: approved,
+            }
+          }),
+        }
+      })
+    )
+  }
+
+  function handleDirectoryPreview() {
+    const unresolved = directoryDrafts.flatMap((family) =>
+      family.members.filter(
+        (member) =>
+          (member.needs_review && !member.override_approved) ||
+          !member.first_name.trim() ||
+          !member.last_name.trim()
+      )
+    )
+    if (unresolved.length > 0) {
+      toast.error('Please resolve all unclear names before previewing import.')
+      return
+    }
+
+    const rows = convertDirectoryDraftToImportRows(directoryDrafts)
+    if (rows.length === 0) {
+      toast.error('No valid rows found after review.')
+      return
+    }
+
+    setMappedRows(rows)
+    setStep('preview')
+  }
+
   async function handleImport() {
     setImporting(true)
     try {
@@ -148,27 +400,39 @@ export function SpreadsheetImporter() {
 
   function reset() {
     setStep('upload')
+    setImportMode(null)
     setFileName('')
     setHeaders([])
     setRawRows([])
+    setDirectoryDrafts([])
     setMapping({})
     setMappedRows([])
     setResult(null)
   }
 
+  const stepFlow: Step[] =
+    importMode === 'directory'
+      ? ['upload', 'review', 'preview', 'done']
+      : ['upload', 'map', 'preview', 'done']
+  const activeStepIndex = stepFlow.indexOf(step)
+  const totalDirectoryMembers = directoryDrafts.reduce((sum, family) => sum + family.members.length, 0)
+  const unresolvedMembers = directoryDrafts.flatMap((family) =>
+    family.members.filter((member) => member.needs_review && !member.override_approved)
+  ).length
+
   return (
     <div className="space-y-6">
       {/* Step indicator */}
       <div className="flex items-center gap-2 text-sm">
-        {(['upload', 'map', 'preview', 'done'] as Step[]).map((s, i) => (
+        {stepFlow.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
             <div
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold',
                 step === s
-                  ? 'bg-blue-700 text-white'
-                  : ['map', 'preview', 'done'].indexOf(s) <= ['map', 'preview', 'done'].indexOf(step)
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-[#7A9C49] text-white'
+                  : i <= activeStepIndex
+                  ? 'bg-[#F4F4EC] text-[#7A9C49]'
                   : 'bg-slate-100 text-slate-400'
               )}
             >
@@ -180,9 +444,9 @@ export function SpreadsheetImporter() {
                 step === s ? 'font-medium text-slate-800' : 'text-slate-400'
               )}
             >
-              {s}
+              {s === 'review' ? 'review unclear names' : s}
             </span>
-            {i < 3 && <ArrowRight className="h-3 w-3 text-slate-300" />}
+            {i < stepFlow.length - 1 && <ArrowRight className="h-3 w-3 text-slate-300" />}
           </div>
         ))}
       </div>
@@ -194,18 +458,18 @@ export function SpreadsheetImporter() {
             <label
               className={cn(
                 'flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-12 transition-colors',
-                dragging ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                dragging ? 'border-[#7A9C49] bg-[#F4F4EC]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
               )}
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-                <FileSpreadsheet className="h-8 w-8 text-blue-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#F4F4EC]">
+                <FileSpreadsheet className="h-8 w-8 text-[#7A9C49]" />
               </div>
               <div className="text-center">
                 <p className="font-medium text-slate-700">
-                  Drop your spreadsheet here, or <span className="text-blue-600">browse</span>
+                  Drop your spreadsheet here, or <span className="text-[#7A9C49]">browse</span>
                 </p>
                 <p className="mt-1 text-sm text-slate-400">Supports .xlsx and .csv files</p>
               </div>
@@ -283,7 +547,138 @@ export function SpreadsheetImporter() {
               </div>
             ))}
             <div className="flex justify-end pt-2">
-              <Button className="bg-blue-700 hover:bg-blue-800" onClick={handlePreview}>
+              <Button className="bg-[#7A9C49] hover:bg-[#6B8A3D]" onClick={handlePreview}>
+                Preview import
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step: Review unclear directory names */}
+      {step === 'review' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Review unclear names</CardTitle>
+                <p className="mt-1 text-sm text-slate-500">
+                  <span className="font-medium">{fileName}</span> · {directoryDrafts.length} families ·{' '}
+                  {totalDirectoryMembers} members
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={reset}>
+                <X className="mr-1.5 h-3.5 w-3.5" />
+                Start over
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-600">
+              Directory format detected (<code>LastName — Names</code>). Any uncertain rows are listed below
+              for confirmation.
+            </div>
+
+            {unresolvedMembers === 0 ? (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                All names parsed cleanly. Continue to preview.
+              </div>
+            ) : (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                {unresolvedMembers} unclear name{unresolvedMembers === 1 ? '' : 's'} need confirmation.
+              </div>
+            )}
+
+            <div className="max-h-[480px] overflow-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-slate-50">
+                  <tr>
+                    {['Family', 'Family ID', 'Source', 'First Name', 'Last Name', 'Override', 'Status'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {directoryDrafts.map((family, familyIndex) =>
+                    family.members.map((member, memberIndex) => (
+                      <tr
+                        key={`${familyIndex}-${memberIndex}`}
+                        className={cn(member.needs_review ? 'bg-yellow-50/60' : 'hover:bg-slate-50')}
+                      >
+                        <td className="px-3 py-2 font-medium text-slate-700">{family.family_name}</td>
+                        <td className="px-3 py-2 text-slate-500">{family.import_id}</td>
+                        <td className="px-3 py-2 text-slate-500">{family.source_value}</td>
+                        <td className="px-3 py-2">
+                          <Input
+                            value={member.first_name}
+                            onChange={(e) =>
+                              updateDirectoryMember(
+                                familyIndex,
+                                memberIndex,
+                                'first_name',
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            value={member.last_name}
+                            onChange={(e) =>
+                              updateDirectoryMember(
+                                familyIndex,
+                                memberIndex,
+                                'last_name',
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-xs">
+                          {member.needs_review ? (
+                            <label className="inline-flex items-center gap-2 text-slate-600">
+                              <input
+                                type="checkbox"
+                                checked={member.override_approved}
+                                onChange={(e) =>
+                                  toggleOverrideApproval(familyIndex, memberIndex, e.target.checked)
+                                }
+                              />
+                              Approve
+                            </label>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-xs">
+                          {member.needs_review && !member.override_approved ? (
+                            <span className="font-medium text-yellow-700">
+                              Needs review{member.review_reason ? `: ${member.review_reason}` : ''}
+                            </span>
+                          ) : member.needs_review && member.override_approved ? (
+                            <span className="font-medium text-[#7A9C49]">Approved override</span>
+                          ) : (
+                            <span className="text-green-700">OK</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={reset}>
+                Cancel
+              </Button>
+              <Button className="bg-[#7A9C49] hover:bg-[#6B8A3D]" onClick={handleDirectoryPreview}>
                 Preview import
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -304,7 +699,11 @@ export function SpreadsheetImporter() {
                   {new Set(mappedRows.map((r) => r.family_name)).size} families
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setStep('map')}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setStep(importMode === 'directory' ? 'review' : 'map')}
+              >
                 <X className="mr-1.5 h-3.5 w-3.5" />
                 Back
               </Button>
@@ -315,7 +714,7 @@ export function SpreadsheetImporter() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50">
                   <tr>
-                    {['Family', 'First Name', 'Last Name', 'Role', 'Phone', 'Email'].map((h) => (
+                    {['Family', 'Family ID', 'First Name', 'Last Name', 'Role', 'Phone', 'Email'].map((h) => (
                       <th
                         key={h}
                         className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -329,6 +728,7 @@ export function SpreadsheetImporter() {
                   {mappedRows.slice(0, 50).map((row, i) => (
                     <tr key={i} className="hover:bg-slate-50">
                       <td className="px-3 py-2 font-medium text-slate-700">{row.family_name}</td>
+                      <td className="px-3 py-2 text-slate-500">{row.import_id ?? '—'}</td>
                       <td className="px-3 py-2 text-slate-600">{row.first_name}</td>
                       <td className="px-3 py-2 text-slate-600">{row.last_name}</td>
                       <td className="px-3 py-2 text-slate-500">{row.role || '—'}</td>
@@ -345,11 +745,11 @@ export function SpreadsheetImporter() {
               </p>
             )}
             <div className="mt-4 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setStep('map')}>
+              <Button variant="outline" onClick={() => setStep(importMode === 'directory' ? 'review' : 'map')}>
                 Back
               </Button>
               <Button
-                className="bg-blue-700 hover:bg-blue-800"
+                className="bg-[#7A9C49] hover:bg-[#6B8A3D]"
                 onClick={handleImport}
                 disabled={importing}
               >
@@ -406,7 +806,7 @@ export function SpreadsheetImporter() {
                   Import another file
                 </Button>
                 <Button
-                  className="bg-blue-700 hover:bg-blue-800"
+                  className="bg-[#7A9C49] hover:bg-[#6B8A3D]"
                   onClick={() => router.push('/')}
                 >
                   View directory

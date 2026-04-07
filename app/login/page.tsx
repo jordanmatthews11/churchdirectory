@@ -63,7 +63,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-700 shadow-lg">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#7A9C49] shadow-lg">
             <BookOpen className="h-7 w-7 text-white" />
           </div>
           <div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
               </div>
-              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800" disabled={loading}>
+              <Button type="submit" className="w-full bg-[#7A9C49] hover:bg-[#6B8A3D]" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign in
               </Button>

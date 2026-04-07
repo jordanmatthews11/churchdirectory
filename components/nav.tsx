@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BookOpen, Users, Upload, Settings, LogOut, Menu, X } from 'lucide-react'
+import { Award, BookOpen, Users, Upload, Settings, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -10,8 +10,10 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 const navItems = [
-  { href: '/', label: 'Directory', icon: Users },
-  { href: '/import', label: 'Import', icon: Upload },
+  { href: '/leadership', label: 'Leadership', icon: Award },
+  { href: '/', label: 'Families', icon: Users },
+  { href: '/directory', label: 'Directory', icon: BookOpen },
+  { href: '/import', label: 'Import Family Names', icon: Upload },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -33,10 +35,8 @@ export function Nav() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 font-semibold text-slate-800">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-700">
-              <BookOpen className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg">Church Directory</span>
+            <img src="/ccc-logo.png" alt="CCC Logo" className="h-8 w-8 object-contain" />
+            <span className="text-lg">Christ Community Church Directory</span>
           </Link>
 
           {/* Desktop nav */}
@@ -48,7 +48,7 @@ export function Nav() {
                 className={cn(
                   'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   pathname === href
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-[#F4F4EC] text-[#7A9C49]'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                 )}
               >
@@ -88,7 +88,7 @@ export function Nav() {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium',
                 pathname === href
-                  ? 'bg-blue-50 text-blue-700'
+                  ? 'bg-[#F4F4EC] text-[#7A9C49]'
                   : 'text-slate-600'
               )}
             >

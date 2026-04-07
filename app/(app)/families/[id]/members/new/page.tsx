@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { createMember } from '@/lib/actions'
-import { ROLE_LABELS, MemberRole } from '@/types'
+import { MemberRole } from '@/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,12 @@ import {
 import { PhotoUpload } from '@/components/photo-upload'
 import { v4 as uuidv4 } from 'uuid'
 
+const ROLE_OPTIONS: Array<{ value: MemberRole; label: string }> = [
+  { value: 'adult', label: 'Adult' },
+  { value: 'child', label: 'Child' },
+  { value: 'other', label: 'Other' },
+]
+
 export default function NewMemberPage() {
   const router = useRouter()
   const { id: familyId } = useParams<{ id: string }>()
@@ -37,9 +43,12 @@ export default function NewMemberPage() {
     phone: '',
     email: '',
     photo_url: '',
+    photo_fit: 'cover' as const,
+    photo_position_x: 50,
+    photo_position_y: 50,
   })
 
-  function update(field: string, value: string) {
+  function update(field: string, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -61,12 +70,15 @@ export default function NewMemberPage() {
         phone: form.phone || null,
         email: form.email || null,
         photo_url: form.photo_url || null,
+        photo_fit: form.photo_fit,
+        photo_position_x: form.photo_position_x,
+        photo_position_y: form.photo_position_y,
       })
       toast.success('Member added')
       router.push(`/families/${familyId}`)
       router.refresh()
-    } catch {
-      toast.error('Failed to add member')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to add member')
     } finally {
       setSaving(false)
     }
@@ -98,7 +110,15 @@ export default function NewMemberPage() {
                 bucket="member-photos"
                 entityId={memberId}
                 currentUrl={form.photo_url || null}
-                onUpload={(url) => update('photo_url', url)}
+                currentFit={form.photo_fit}
+                currentPositionX={form.photo_position_x}
+                currentPositionY={form.photo_position_y}
+                onUpload={(url, presentation) => {
+                  update('photo_url', url)
+                  update('photo_fit', presentation.fit)
+                  update('photo_position_x', presentation.positionX)
+                  update('photo_position_y', presentation.positionY)
+                }}
                 onRemove={() => update('photo_url', '')}
                 size="md"
                 shape="circle"
@@ -138,7 +158,7 @@ export default function NewMemberPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                  {ROLE_OPTIONS.map(({ value, label }) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
@@ -196,7 +216,7 @@ export default function NewMemberPage() {
           <Button type="button" variant="outline" asChild className="flex-1">
             <Link href={`/families/${familyId}`}>Cancel</Link>
           </Button>
-          <Button type="submit" className="flex-1 bg-blue-700 hover:bg-blue-800" disabled={saving}>
+          <Button type="submit" className="flex-1 bg-[#7A9C49] hover:bg-[#6B8A3D]" disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Member
           </Button>

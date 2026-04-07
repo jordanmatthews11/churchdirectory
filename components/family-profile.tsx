@@ -44,10 +44,13 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
     state: initialFamily.state ?? '',
     zip: initialFamily.zip ?? '',
     photo_url: initialFamily.photo_url ?? '',
+    photo_fit: initialFamily.photo_fit ?? 'cover',
+    photo_position_x: initialFamily.photo_position_x ?? 50,
+    photo_position_y: initialFamily.photo_position_y ?? 50,
     notes: initialFamily.notes ?? '',
   })
 
-  function update(field: string, value: string) {
+  function update(field: string, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -65,13 +68,16 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
         state: form.state || null,
         zip: form.zip || null,
         photo_url: form.photo_url || null,
+        photo_fit: form.photo_fit,
+        photo_position_x: form.photo_position_x,
+        photo_position_y: form.photo_position_y,
         notes: form.notes || null,
       })
       setFamily((prev) => ({ ...prev, ...updated }))
       setEditing(false)
       toast.success('Family updated')
-    } catch {
-      toast.error('Failed to save changes')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save changes')
     } finally {
       setSaving(false)
     }
@@ -85,6 +91,9 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
       state: family.state ?? '',
       zip: family.zip ?? '',
       photo_url: family.photo_url ?? '',
+      photo_fit: family.photo_fit ?? 'cover',
+      photo_position_x: family.photo_position_x ?? 50,
+      photo_position_y: family.photo_position_y ?? 50,
       notes: family.notes ?? '',
     })
     setEditing(false)
@@ -107,7 +116,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
     .join(' · ')
 
   const sortedMembers = [...(family.members ?? [])].sort((a, b) => {
-    const order = { head: 0, spouse: 1, child: 2, other: 3 }
+    const order: Record<string, number> = { adult: 0, child: 1, other: 2 }
     return (order[a.role] ?? 3) - (order[b.role] ?? 3)
   })
 
@@ -126,7 +135,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-blue-700 hover:bg-blue-800"
+                  className="bg-[#7A9C49] hover:bg-[#6B8A3D]"
                   onClick={handleSave}
                   disabled={saving}
                 >
@@ -181,7 +190,15 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                 bucket="family-photos"
                 entityId={family.id}
                 currentUrl={form.photo_url || null}
-                onUpload={(url) => update('photo_url', url)}
+                currentFit={form.photo_fit}
+                currentPositionX={form.photo_position_x}
+                currentPositionY={form.photo_position_y}
+                onUpload={(url, presentation) => {
+                  update('photo_url', url)
+                  update('photo_fit', presentation.fit)
+                  update('photo_position_x', presentation.positionX)
+                  update('photo_position_y', presentation.positionY)
+                }}
                 onRemove={() => update('photo_url', '')}
                 size="lg"
                 shape="rounded"
@@ -233,13 +250,17 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                     src={family.photo_url}
                     alt={`${family.name} family`}
                     fill
-                    className="object-cover"
+                    className={(family.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'}
+                    style={{
+                      objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
+                    }}
                     sizes="96px"
                   />
                 </div>
               )}
               <div className="space-y-1.5">
                 <h2 className="text-xl font-bold text-slate-800">{family.name} Family</h2>
+                <p className="text-xs text-slate-400">Family ID: {family.id}</p>
                 {fullAddress && (
                   <p className="flex items-start gap-1.5 text-sm text-slate-500">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
@@ -270,7 +291,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
         {sortedMembers.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white py-12 text-center">
             <p className="mb-4 text-sm text-slate-500">No members yet</p>
-            <Button asChild size="sm" className="bg-blue-700 hover:bg-blue-800">
+            <Button asChild size="sm" className="bg-[#7A9C49] hover:bg-[#6B8A3D]">
               <Link href={`/families/${family.id}/members/new`}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add first member
