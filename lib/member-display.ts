@@ -21,8 +21,8 @@ function fullName(m: Member): string {
 
 /**
  * When `differentLastNames` is false: comma-separated first names.
- * When true: adults as "First Last" joined with "and",
- * then children/other as first names comma-separated.
+ * When true: non-child members shown as "First Last" joined with "and",
+ * children shown as first names only, comma-separated after.
  */
 export function formatMemberDisplayLine(
   members: Member[] | undefined,
@@ -35,26 +35,26 @@ export function formatMemberDisplayLine(
     return list.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
   }
 
-  const adults = list.filter((m) => m.role === 'adult')
-  const rest = list.filter((m) => m.role !== 'adult')
+  const nonChildren = list.filter((m) => m.role !== 'child')
+  const children = list.filter((m) => m.role === 'child')
 
-  const adultFull = adults.map(fullName).filter(Boolean)
-  const restFirst = rest.map((m) => m.first_name.trim()).filter(Boolean)
+  const fullNames = nonChildren.map(fullName).filter(Boolean)
+  const childFirst = children.map((m) => m.first_name.trim()).filter(Boolean)
 
-  if (adultFull.length === 0) {
+  if (fullNames.length === 0) {
     return list.map((m) => m.first_name.trim()).filter(Boolean).join(', ')
   }
 
-  let adultPart: string
-  if (adultFull.length === 1) {
-    adultPart = adultFull[0]
-  } else if (adultFull.length === 2) {
-    adultPart = `${adultFull[0]} and ${adultFull[1]}`
+  let mainPart: string
+  if (fullNames.length === 1) {
+    mainPart = fullNames[0]
+  } else if (fullNames.length === 2) {
+    mainPart = `${fullNames[0]} and ${fullNames[1]}`
   } else {
-    adultPart =
-      adultFull.slice(0, -1).join(', ') + ', and ' + adultFull[adultFull.length - 1]
+    mainPart =
+      fullNames.slice(0, -1).join(', ') + ', and ' + fullNames[fullNames.length - 1]
   }
 
-  if (restFirst.length === 0) return adultPart
-  return `${adultPart}, ${restFirst.join(', ')}`
+  if (childFirst.length === 0) return mainPart
+  return `${mainPart}, ${childFirst.join(', ')}`
 }
