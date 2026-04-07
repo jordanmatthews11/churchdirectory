@@ -27,6 +27,8 @@ import {
 import { PhotoUpload } from '@/components/photo-upload'
 import { MemberCard } from '@/components/member-card'
 import Link from 'next/link'
+import { Checkbox } from '@/components/ui/checkbox'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 interface FamilyProfileProps {
   family: Family
@@ -39,6 +41,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     name: initialFamily.name,
+    different_last_names: initialFamily.different_last_names ?? false,
     mailing_address: initialFamily.mailing_address ?? '',
     city: initialFamily.city ?? '',
     state: initialFamily.state ?? '',
@@ -63,6 +66,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
     try {
       const updated = await updateFamily(family.id, {
         name: form.name.trim(),
+        different_last_names: form.different_last_names,
         mailing_address: form.mailing_address || null,
         city: form.city || null,
         state: form.state || null,
@@ -86,6 +90,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
   function handleCancel() {
     setForm({
       name: family.name,
+      different_last_names: family.different_last_names ?? false,
       mailing_address: family.mailing_address ?? '',
       city: family.city ?? '',
       state: family.state ?? '',
@@ -241,6 +246,29 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                   onChange={(e) => update('notes', e.target.value)}
                 />
               </div>
+              <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50/80 p-3">
+                <Checkbox
+                  id="different_last_names"
+                  checked={form.different_last_names}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      different_last_names: checked === true,
+                    }))
+                  }
+                  className="mt-0.5"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label htmlFor="different_last_names" className="font-normal">
+                    Different last names
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Show full names for adults in the directory and on cards
+                    (e.g. &quot;Gene Wirth and Mary Degloyer&quot;). Children still list first names
+                    only.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex gap-6">
@@ -260,6 +288,14 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
               )}
               <div className="space-y-1.5">
                 <h2 className="text-xl font-bold text-slate-800">{family.name} Family</h2>
+                {sortedMembers.length > 0 && (
+                  <p className="text-sm text-[#4A6A2A]">
+                    {formatMemberDisplayLine(
+                      sortedMembers,
+                      family.different_last_names ?? false
+                    )}
+                  </p>
+                )}
                 <p className="text-xs text-slate-400">Family ID: {family.id}</p>
                 {fullAddress && (
                   <p className="flex items-start gap-1.5 text-sm text-slate-500">

@@ -1,6 +1,7 @@
 'use client'
 
 import { Family, Member } from '@/types'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 export interface DirectoryCellProps {
   family: Family & { members?: Member[] }
@@ -18,10 +19,12 @@ function getInitials(name: string) {
 
 export function DirectoryCell({ family }: DirectoryCellProps) {
   const members = family.members ?? []
-  const memberNames = members.map((m) => m.first_name.trim()).filter(Boolean)
-  const memberLine = memberNames.join(', ')
+  const memberLine = formatMemberDisplayLine(
+    members,
+    family.different_last_names ?? false
+  )
 
-  if (!family.name && memberNames.length === 0) {
+  if (!family.name && !memberLine) {
     return <div className="directory-cell" style={{ visibility: 'hidden' }} />
   }
 

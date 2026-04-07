@@ -1,18 +1,19 @@
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
-import { Family } from '@/types'
+import { Family, Member } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatMemberDisplayLine } from '@/lib/member-display'
 
 interface FamilyCardProps {
-  family: Family & { members?: { id: string; first_name: string }[] }
+  family: Family & { members?: Member[] }
 }
 
 export function FamilyCard({ family }: FamilyCardProps) {
   const location = [family.city, family.state].filter(Boolean).join(', ')
-  const memberNames = (family.members ?? [])
-    .map((member) => member.first_name?.trim())
-    .filter(Boolean)
-    .join(', ')
+  const memberNames = formatMemberDisplayLine(
+    family.members,
+    family.different_last_names ?? false
+  )
 
   return (
     <Link href={`/families/${family.id}`}>
