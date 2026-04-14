@@ -66,6 +66,8 @@ export function PropertiesPanel({
     date_label: settings.date_label,
     logo_scale: settings.logo_scale ?? 100,
     logo_offset_y: settings.logo_offset_y ?? 0,
+    logo_position_x: settings.logo_position_x ?? 50,
+    logo_position_y: settings.logo_position_y ?? 50,
   })
   const [saving, setSaving] = useState(false)
   const [uploadingKey, setUploadingKey] = useState<string | null>(null)
@@ -76,6 +78,8 @@ export function PropertiesPanel({
       date_label: settings.date_label,
       logo_scale: settings.logo_scale ?? 100,
       logo_offset_y: settings.logo_offset_y ?? 0,
+      logo_position_x: settings.logo_position_x ?? 50,
+      logo_position_y: settings.logo_position_y ?? 50,
     })
   }, [settings])
 
@@ -266,6 +270,58 @@ export function PropertiesPanel({
             />
             <p className="text-[11px] text-slate-500">
               Move the header logo up or down without changing the placement of the rest of the page.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">Logo Crop Horizontal</label>
+              <span className="text-xs text-slate-500">{form.logo_position_x}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={form.logo_position_x}
+              onChange={(e) => {
+                const nextLogoPositionX = Number(e.target.value)
+                setForm((p) => ({
+                  ...p,
+                  logo_position_x: nextLogoPositionX,
+                }))
+                onPreviewChange?.({ logo_position_x: nextLogoPositionX })
+              }}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+            />
+            <p className="text-[11px] text-slate-500">
+              Shift the visible crop left or right inside the logo frame.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">Logo Crop Vertical</label>
+              <span className="text-xs text-slate-500">{form.logo_position_y}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={form.logo_position_y}
+              onChange={(e) => {
+                const nextLogoPositionY = Number(e.target.value)
+                setForm((p) => ({
+                  ...p,
+                  logo_position_y: nextLogoPositionY,
+                }))
+                onPreviewChange?.({ logo_position_y: nextLogoPositionY })
+              }}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+            />
+            <p className="text-[11px] text-slate-500">
+              Shift the visible crop up or down inside the logo frame.
             </p>
           </div>
 
