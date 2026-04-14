@@ -275,7 +275,7 @@ export default function DirectoryPage() {
       const canvases: HTMLCanvasElement[] = []
       for (const page of pages) {
         const canvas = await html2canvas(page, {
-          scale: 4,
+          scale: 3,
           useCORS: true,
           backgroundColor: '#ffffff',
           logging: false,
@@ -320,9 +320,9 @@ export default function DirectoryPage() {
       })
 
       for (let i = 0; i < canvases.length; i += 1) {
-        const imgData = canvases[i].toDataURL('image/png')
+        const imgData = canvases[i].toDataURL('image/jpeg', 0.95)
         if (i > 0) pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11)
+        pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11)
       }
 
       pdf.save(`church-directory-web-${new Date().toISOString().slice(0, 10)}.pdf`)
@@ -389,16 +389,16 @@ export default function DirectoryPage() {
         pageMap.push(`Sheet ${s + 1} front: ${fl + 1} | ${fr + 1}`)
         pageMap.push(`Sheet ${s + 1} back:  ${bl + 1} | ${br + 1}`)
 
-        const imgL_front = canvases[fl]!.toDataURL('image/png')
-        const imgR_front = canvases[fr]!.toDataURL('image/png')
-        pdf.addImage(imgL_front, 'PNG', leftX, yOff, imgW, imgH)
-        pdf.addImage(imgR_front, 'PNG', rightX, yOff, imgW, imgH)
+        const imgL_front = canvases[fl]!.toDataURL('image/jpeg', 0.95)
+        const imgR_front = canvases[fr]!.toDataURL('image/jpeg', 0.95)
+        pdf.addImage(imgL_front, 'JPEG', leftX, yOff, imgW, imgH)
+        pdf.addImage(imgR_front, 'JPEG', rightX, yOff, imgW, imgH)
 
         pdf.addPage('letter', 'l')
-        const imgL_back = canvases[bl]!.toDataURL('image/png')
-        const imgR_back = canvases[br]!.toDataURL('image/png')
-        pdf.addImage(imgL_back, 'PNG', leftX, yOff, imgW, imgH)
-        pdf.addImage(imgR_back, 'PNG', rightX, yOff, imgW, imgH)
+        const imgL_back = canvases[bl]!.toDataURL('image/jpeg', 0.95)
+        const imgR_back = canvases[br]!.toDataURL('image/jpeg', 0.95)
+        pdf.addImage(imgL_back, 'JPEG', leftX, yOff, imgW, imgH)
+        pdf.addImage(imgR_back, 'JPEG', rightX, yOff, imgW, imgH)
       }
 
       console.log(
