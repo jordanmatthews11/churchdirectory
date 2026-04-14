@@ -33,7 +33,7 @@ export function TitlePage({ settings }: TitlePageProps) {
         <div className="mx-auto h-[300px] w-[470px] overflow-visible">
           <div className="relative h-full w-full" style={{ transform: `translateY(${logoOffsetY}px)` }}>
             <div
-              className="relative h-full w-full overflow-hidden rounded-xl bg-slate-50"
+              className="relative h-full w-full overflow-hidden rounded-xl bg-white"
               style={{
                 transform: `scale(${logoScale / 100})`,
                 transformOrigin: 'center top',
