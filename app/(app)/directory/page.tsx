@@ -275,7 +275,7 @@ export default function DirectoryPage() {
       const canvases: HTMLCanvasElement[] = []
       for (const page of pages) {
         const canvas = await html2canvas(page, {
-          scale: 2,
+          scale: 4,
           useCORS: true,
           backgroundColor: '#ffffff',
           logging: false,
@@ -320,9 +320,9 @@ export default function DirectoryPage() {
       })
 
       for (let i = 0; i < canvases.length; i += 1) {
-        const imgData = canvases[i].toDataURL('image/jpeg', 0.92)
+        const imgData = canvases[i].toDataURL('image/png')
         if (i > 0) pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11)
+        pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11)
       }
 
       pdf.save(`church-directory-web-${new Date().toISOString().slice(0, 10)}.pdf`)
