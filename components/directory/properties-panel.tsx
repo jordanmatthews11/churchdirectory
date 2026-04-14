@@ -66,8 +66,10 @@ export function PropertiesPanel({
     date_label: settings.date_label,
     logo_scale: settings.logo_scale ?? 100,
     logo_offset_y: settings.logo_offset_y ?? 0,
-    logo_position_x: settings.logo_position_x ?? 50,
-    logo_position_y: settings.logo_position_y ?? 50,
+    logo_crop_top: settings.logo_crop_top ?? 0,
+    logo_crop_bottom: settings.logo_crop_bottom ?? 0,
+    logo_crop_left: settings.logo_crop_left ?? 0,
+    logo_crop_right: settings.logo_crop_right ?? 0,
   })
   const [saving, setSaving] = useState(false)
   const [uploadingKey, setUploadingKey] = useState<string | null>(null)
@@ -78,8 +80,10 @@ export function PropertiesPanel({
       date_label: settings.date_label,
       logo_scale: settings.logo_scale ?? 100,
       logo_offset_y: settings.logo_offset_y ?? 0,
-      logo_position_x: settings.logo_position_x ?? 50,
-      logo_position_y: settings.logo_position_y ?? 50,
+      logo_crop_top: settings.logo_crop_top ?? 0,
+      logo_crop_bottom: settings.logo_crop_bottom ?? 0,
+      logo_crop_left: settings.logo_crop_left ?? 0,
+      logo_crop_right: settings.logo_crop_right ?? 0,
     })
   }, [settings])
 
@@ -275,53 +279,105 @@ export function PropertiesPanel({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Logo Crop Horizontal</label>
-              <span className="text-xs text-slate-500">{form.logo_position_x}%</span>
+              <label className="text-xs font-medium text-slate-600">Crop Top</label>
+              <span className="text-xs text-slate-500">{form.logo_crop_top}%</span>
             </div>
             <input
               type="range"
               min={0}
-              max={100}
+              max={40}
               step={5}
-              value={form.logo_position_x}
+              value={form.logo_crop_top}
               onChange={(e) => {
-                const nextLogoPositionX = Number(e.target.value)
+                const nextLogoCropTop = Number(e.target.value)
                 setForm((p) => ({
                   ...p,
-                  logo_position_x: nextLogoPositionX,
+                  logo_crop_top: nextLogoCropTop,
                 }))
-                onPreviewChange?.({ logo_position_x: nextLogoPositionX })
+                onPreviewChange?.({ logo_crop_top: nextLogoCropTop })
               }}
               className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
             />
             <p className="text-[11px] text-slate-500">
-              Shift the visible crop left or right inside the logo frame.
+              Trim the top edge of the logo image.
             </p>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Logo Crop Vertical</label>
-              <span className="text-xs text-slate-500">{form.logo_position_y}%</span>
+              <label className="text-xs font-medium text-slate-600">Crop Bottom</label>
+              <span className="text-xs text-slate-500">{form.logo_crop_bottom}%</span>
             </div>
             <input
               type="range"
               min={0}
-              max={100}
+              max={40}
               step={5}
-              value={form.logo_position_y}
+              value={form.logo_crop_bottom}
               onChange={(e) => {
-                const nextLogoPositionY = Number(e.target.value)
+                const nextLogoCropBottom = Number(e.target.value)
                 setForm((p) => ({
                   ...p,
-                  logo_position_y: nextLogoPositionY,
+                  logo_crop_bottom: nextLogoCropBottom,
                 }))
-                onPreviewChange?.({ logo_position_y: nextLogoPositionY })
+                onPreviewChange?.({ logo_crop_bottom: nextLogoCropBottom })
               }}
               className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
             />
             <p className="text-[11px] text-slate-500">
-              Shift the visible crop up or down inside the logo frame.
+              Trim the bottom edge of the logo image.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">Crop Left</label>
+              <span className="text-xs text-slate-500">{form.logo_crop_left}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={40}
+              step={5}
+              value={form.logo_crop_left}
+              onChange={(e) => {
+                const nextLogoCropLeft = Number(e.target.value)
+                setForm((p) => ({
+                  ...p,
+                  logo_crop_left: nextLogoCropLeft,
+                }))
+                onPreviewChange?.({ logo_crop_left: nextLogoCropLeft })
+              }}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+            />
+            <p className="text-[11px] text-slate-500">
+              Trim the left edge of the logo image.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">Crop Right</label>
+              <span className="text-xs text-slate-500">{form.logo_crop_right}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={40}
+              step={5}
+              value={form.logo_crop_right}
+              onChange={(e) => {
+                const nextLogoCropRight = Number(e.target.value)
+                setForm((p) => ({
+                  ...p,
+                  logo_crop_right: nextLogoCropRight,
+                }))
+                onPreviewChange?.({ logo_crop_right: nextLogoCropRight })
+              }}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+            />
+            <p className="text-[11px] text-slate-500">
+              Trim the right edge of the logo image.
             </p>
           </div>
 

@@ -90,8 +90,10 @@ export interface DirectorySettings {
   logo_url: string | null
   logo_scale: number
   logo_offset_y: number
-  logo_position_x: number
-  logo_position_y: number
+  logo_crop_top: number
+  logo_crop_bottom: number
+  logo_crop_left: number
+  logo_crop_right: number
   church_name: string
   cover_title_line1: string
   cover_title_line2: string

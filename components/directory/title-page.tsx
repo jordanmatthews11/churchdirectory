@@ -21,8 +21,10 @@ export function TitlePage({ settings }: TitlePageProps) {
   const paragraphs = useMemo(() => splitIntoParagraphs(settings.intro_text), [settings.intro_text])
   const logoScale = settings.logo_scale ?? 100
   const logoOffsetY = settings.logo_offset_y ?? 0
-  const logoPositionX = settings.logo_position_x ?? 50
-  const logoPositionY = settings.logo_position_y ?? 50
+  const logoCropTop = settings.logo_crop_top ?? 0
+  const logoCropBottom = settings.logo_crop_bottom ?? 0
+  const logoCropLeft = settings.logo_crop_left ?? 0
+  const logoCropRight = settings.logo_crop_right ?? 0
 
   return (
     <section className="directory-page directory-title-page relative overflow-hidden bg-white break-after-page">
@@ -43,7 +45,9 @@ export function TitlePage({ settings }: TitlePageProps) {
                   alt="Opening header"
                   fill
                   className="object-cover"
-                  style={{ objectPosition: `${logoPositionX}% ${logoPositionY}%` }}
+                  style={{
+                    clipPath: `inset(${logoCropTop}% ${logoCropRight}% ${logoCropBottom}% ${logoCropLeft}%)`,
+                  }}
                   sizes="470px"
                 />
               ) : (
