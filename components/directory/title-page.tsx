@@ -19,15 +19,27 @@ function splitIntoParagraphs(text: string) {
 
 export function TitlePage({ settings }: TitlePageProps) {
   const paragraphs = useMemo(() => splitIntoParagraphs(settings.intro_text), [settings.intro_text])
+  const logoScale = settings.logo_scale ?? 100
+  const scaledLogoWidth = Math.min(688, Math.round((470 * logoScale) / 100))
+  const scaledLogoHeight = Math.round((300 * logoScale) / 100)
 
   return (
     <section className="directory-page directory-title-page relative overflow-hidden bg-white break-after-page">
       <div className="relative z-10 flex h-full flex-col px-16 pt-8 pb-10">
         {/* Header upload area (logo + "Church Directory" text replacement) */}
-        <div className="mx-auto w-[470px]">
-          <div className="relative h-[300px] w-[470px] overflow-hidden rounded-xl bg-slate-50">
+        <div className="mx-auto" style={{ width: `${scaledLogoWidth}px`, maxWidth: '100%' }}>
+          <div
+            className="relative overflow-hidden rounded-xl bg-slate-50"
+            style={{ width: `${scaledLogoWidth}px`, height: `${scaledLogoHeight}px`, maxWidth: '100%' }}
+          >
             {settings.logo_url ? (
-              <Image src={settings.logo_url} alt="Opening header" fill className="object-cover" sizes="470px" />
+              <Image
+                src={settings.logo_url}
+                alt="Opening header"
+                fill
+                className="object-cover"
+                sizes={`${scaledLogoWidth}px`}
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-center">
                 <div>

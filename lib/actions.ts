@@ -170,6 +170,7 @@ export async function updateDirectorySettings(
       | 'cover_image_url'
       | 'title_image_url'
       | 'logo_url'
+      | 'logo_scale'
       | 'church_name'
       | 'cover_title_line1'
       | 'cover_title_line2'

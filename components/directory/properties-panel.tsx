@@ -58,6 +58,7 @@ export function PropertiesPanel({ pageType, settings, onSettingsSaved }: Propert
   const [form, setForm] = useState({
     intro_text: settings.intro_text,
     date_label: settings.date_label,
+    logo_scale: settings.logo_scale ?? 100,
   })
   const [saving, setSaving] = useState(false)
   const [uploadingKey, setUploadingKey] = useState<string | null>(null)
@@ -66,6 +67,7 @@ export function PropertiesPanel({ pageType, settings, onSettingsSaved }: Propert
     setForm({
       intro_text: settings.intro_text,
       date_label: settings.date_label,
+      logo_scale: settings.logo_scale ?? 100,
     })
   }, [settings])
 
@@ -205,6 +207,29 @@ export function PropertiesPanel({ pageType, settings, onSettingsSaved }: Propert
                 </Button>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-600">Logo Size</label>
+              <span className="text-xs text-slate-500">{form.logo_scale}%</span>
+            </div>
+            <input
+              type="range"
+              min={50}
+              max={150}
+              step={5}
+              value={form.logo_scale}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  logo_scale: Number(e.target.value),
+                }))}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+            />
+            <p className="text-[11px] text-slate-500">
+              Make the header logo smaller or larger on the Opening page.
+            </p>
           </div>
 
           <div className="space-y-2">
