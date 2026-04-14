@@ -246,6 +246,10 @@ export default function DirectoryPage() {
     setSettings(next)
   }
 
+  function handleSettingsPreview(values: Partial<DirectorySettings>) {
+    setSettings((prev) => (prev ? { ...prev, ...values } : prev))
+  }
+
   /**
    * Rasterize each `.directory-page`. Sanitizes the *live* document stylesheets first — html2canvas parses them
    * before `onclone`, so the clone-only approach was insufficient for `lab()` / `oklch()` from Tailwind v4.
@@ -519,6 +523,7 @@ export default function DirectoryPage() {
         pageType={selectedPage.kind}
         settings={settings}
         onSettingsSaved={handleSettingsSaved}
+        onPreviewChange={handleSettingsPreview}
       />
 
       <div ref={exportCanvasRef} className="directory-export-hidden" aria-hidden="true">

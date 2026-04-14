@@ -52,9 +52,15 @@ interface PropertiesPanelProps {
   pageType: PageType
   settings: DirectorySettings
   onSettingsSaved: (values: Partial<DirectorySettings>) => Promise<void>
+  onPreviewChange?: (values: Partial<DirectorySettings>) => void
 }
 
-export function PropertiesPanel({ pageType, settings, onSettingsSaved }: PropertiesPanelProps) {
+export function PropertiesPanel({
+  pageType,
+  settings,
+  onSettingsSaved,
+  onPreviewChange,
+}: PropertiesPanelProps) {
   const [form, setForm] = useState({
     intro_text: settings.intro_text,
     date_label: settings.date_label,
@@ -220,11 +226,14 @@ export function PropertiesPanel({ pageType, settings, onSettingsSaved }: Propert
               max={150}
               step={5}
               value={form.logo_scale}
-              onChange={(e) =>
+              onChange={(e) => {
+                const nextLogoScale = Number(e.target.value)
                 setForm((p) => ({
                   ...p,
-                  logo_scale: Number(e.target.value),
-                }))}
+                  logo_scale: nextLogoScale,
+                }))
+                onPreviewChange?.({ logo_scale: nextLogoScale })
+              }}
               className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
             />
             <p className="text-[11px] text-slate-500">
