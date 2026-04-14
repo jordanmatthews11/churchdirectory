@@ -19,21 +19,33 @@ function splitIntoParagraphs(text: string) {
 
 export function TitlePage({ settings }: TitlePageProps) {
   const paragraphs = useMemo(() => splitIntoParagraphs(settings.intro_text), [settings.intro_text])
+  const logoBaseHeight = 300
+  const logoBaseWidth = 470
   const logoScale = settings.logo_scale ?? 100
   const logoOffsetY = settings.logo_offset_y ?? 0
   const logoCropTop = settings.logo_crop_top ?? 0
   const logoCropBottom = settings.logo_crop_bottom ?? 0
   const logoCropLeft = settings.logo_crop_left ?? 0
   const logoCropRight = settings.logo_crop_right ?? 0
+  const cropTopPx = (logoCropTop / 100) * logoBaseHeight
+  const cropBottomPx = (logoCropBottom / 100) * logoBaseHeight
+  const effectiveHeight = Math.max(0, logoBaseHeight - cropTopPx - cropBottomPx)
 
   return (
     <section className="directory-page directory-title-page relative overflow-hidden bg-white break-after-page">
       <div className="relative z-10 flex h-full flex-col px-16 pt-8 pb-10">
         {/* Header upload area (logo + "Church Directory" text replacement) */}
-        <div className="mx-auto h-[300px] w-[470px] overflow-visible">
-          <div className="relative h-full w-full" style={{ transform: `translateY(${logoOffsetY}px)` }}>
+        <div className="mx-auto overflow-visible" style={{ width: `${logoBaseWidth}px`, height: `${effectiveHeight}px` }}>
+          <div
+            className="relative overflow-hidden"
+            style={{
+              width: `${logoBaseWidth}px`,
+              height: `${logoBaseHeight}px`,
+              transform: `translateY(${logoOffsetY - cropTopPx}px)`,
+            }}
+          >
             <div
-              className="relative h-full w-full overflow-hidden rounded-xl bg-white"
+              className="relative h-full w-full overflow-hidden rounded-xl"
               style={{
                 transform: `scale(${logoScale / 100})`,
                 transformOrigin: 'center top',
