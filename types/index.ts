@@ -89,6 +89,7 @@ export interface DirectorySettings {
   title_image_url: string | null
   logo_url: string | null
   logo_scale: number
+  logo_offset_y: number
   church_name: string
   cover_title_line1: string
   cover_title_line2: string
