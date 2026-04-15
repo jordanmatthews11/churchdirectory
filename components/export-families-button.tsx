@@ -3,9 +3,8 @@
 import { Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
+import { sortMembersForDisplay } from '@/lib/member-display'
 import { Family } from '@/types'
-
-const ROLE_ORDER: Record<string, number> = { adult: 0, child: 1, other: 2 }
 
 const HEADERS: string[] = [
   'Family ID',
@@ -35,9 +34,7 @@ export function ExportFamiliesButton({ families }: Props) {
     const sorted = [...families].sort((a, b) => a.name.localeCompare(b.name))
 
     for (const family of sorted) {
-      const members = [...(family.members ?? [])].sort(
-        (a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9)
-      )
+      const members = sortMembersForDisplay(family.members ?? [])
 
       const addressRow = [
         family.id,

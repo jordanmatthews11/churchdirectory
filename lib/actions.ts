@@ -91,26 +91,53 @@ export async function deleteFamily(id: string): Promise<void> {
 
 // ─── Members ─────────────────────────────────────────────────────────────────
 
+type CreateMemberInput = Omit<Member, 'id' | 'created_at' | 'display_order'> &
+  Partial<Pick<Member, 'display_order'>>
+
+function revalidateMemberPaths(familyId: string) {
+  revalidatePath('/')
+  revalidatePath('/directory')
+  revalidatePath(`/families/${familyId}`)
+}
+
+async function getNextMemberDisplayOrder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  familyId: string
+): Promise<number> {
+  const { data, error } = await supabase
+    .from('members')
+    .select('display_order')
+    .eq('family_id', familyId)
+    .order('display_order', { ascending: false })
+    .limit(1)
+
+  if (error) throw toThrownError(error)
+  return (data?.[0]?.display_order ?? -1) + 1
+}
+
 export async function createMember(
-  values: Omit<Member, 'id' | 'created_at'>
+  values: CreateMemberInput
 ): Promise<Member> {
   const supabase = await createClient()
+  const displayOrder =
+    values.display_order ?? (await getNextMemberDisplayOrder(supabase, values.family_id))
+  const insertValues = { ...values, display_order: displayOrder }
   let { data, error } = await supabase
     .from('members')
-    .insert(values)
+    .insert(insertValues)
     .select()
     .single()
   if (error && isMissingPhotoPresentationColumnsError(error)) {
     const retry = await supabase
       .from('members')
-      .insert(omitPhotoPresentationFields({ ...values }))
+      .insert(omitPhotoPresentationFields({ ...insertValues }))
       .select()
       .single()
     data = retry.data
     error = retry.error
   }
   if (error) throw toThrownError(error)
-  revalidatePath(`/families/${values.family_id}`)
+  revalidateMemberPaths(values.family_id)
   return data
 }
 
@@ -137,7 +164,7 @@ export async function updateMember(
     error = retry.error
   }
   if (error) throw toThrownError(error)
-  revalidatePath(`/families/${familyId}`)
+  revalidateMemberPaths(familyId)
   return data
 }
 
@@ -145,7 +172,39 @@ export async function deleteMember(id: string, familyId: string): Promise<void> 
   const supabase = await createClient()
   const { error } = await supabase.from('members').delete().eq('id', id)
   if (error) throw error
-  revalidatePath(`/families/${familyId}`)
+  revalidateMemberPaths(familyId)
+}
+
+export async function reorderMembers(familyId: string, orderedIds: string[]): Promise<void> {
+  const supabase = await createClient()
+  const { data: members, error } = await supabase
+    .from('members')
+    .select('id')
+    .eq('family_id', familyId)
+
+  if (error) throw toThrownError(error)
+
+  const expectedIds = new Set((members ?? []).map((member) => member.id))
+  if (
+    orderedIds.length !== expectedIds.size ||
+    orderedIds.some((id) => !expectedIds.has(id))
+  ) {
+    throw new Error('Member order is out of date. Refresh and try again.')
+  }
+
+  const updates = orderedIds.map((id, index) =>
+    supabase
+      .from('members')
+      .update({ display_order: index })
+      .eq('id', id)
+      .eq('family_id', familyId)
+  )
+
+  const results = await Promise.all(updates)
+  const failedUpdate = results.find((result) => result.error)
+  if (failedUpdate?.error) throw toThrownError(failedUpdate.error)
+
+  revalidateMemberPaths(familyId)
 }
 
 // ─── Directory Settings ──────────────────────────────────────────────────────
@@ -364,6 +423,7 @@ export async function importRows(rows: ImportRow[]): Promise<{ imported: number;
       }
 
       // Insert members
+      let nextDisplayOrder = await getNextMemberDisplayOrder(supabase, familyId)
       for (const row of members) {
         const raw = row.role?.toLowerCase() ?? ''
         const role =
@@ -378,6 +438,7 @@ export async function importRows(rows: ImportRow[]): Promise<{ imported: number;
           first_name: row.first_name.trim(),
           last_name: row.last_name.trim(),
           role,
+          display_order: nextDisplayOrder,
           bio: row.bio || null,
           member_since: row.member_since || null,
           phone: row.phone || null,
@@ -387,6 +448,7 @@ export async function importRows(rows: ImportRow[]): Promise<{ imported: number;
         if (memberError) {
           errors.push(`Failed to add member "${row.first_name} ${row.last_name}": ${memberError.message}`)
         } else {
+          nextDisplayOrder += 1
           imported++
         }
       }
@@ -794,6 +856,7 @@ export async function applyReimportChanges(
       if (famErr || !created) throw new Error(famErr?.message ?? 'Failed to create family')
 
       const fid = created.id as string
+      let nextDisplayOrder = 0
       for (const row of nf.members) {
         const fn = normStr(row.first_name)
         const ln = normStr(row.last_name)
@@ -803,12 +866,14 @@ export async function applyReimportChanges(
           first_name: fn,
           last_name: ln,
           role: normRole(row.role),
+          display_order: nextDisplayOrder,
           bio: normStr(row.bio) || null,
           member_since: normDate(row.member_since) || null,
           phone: normStr(row.phone) || null,
           email: normStr(row.email) || null,
         })
         if (memErr) throw new Error(memErr.message)
+        nextDisplayOrder += 1
       }
     }
 
@@ -859,6 +924,7 @@ export async function applyReimportChanges(
         if (upMemErr) throw new Error(upMemErr.message)
       }
 
+      let nextDisplayOrder = await getNextMemberDisplayOrder(supabase, u.family_id)
       for (const nm of u.newMembers) {
         const row = nm.row
         const fn = normStr(row.first_name)
@@ -869,12 +935,14 @@ export async function applyReimportChanges(
           first_name: fn,
           last_name: ln,
           role: normRole(row.role),
+          display_order: nextDisplayOrder,
           bio: normStr(row.bio) || null,
           member_since: normDate(row.member_since) || null,
           phone: normStr(row.phone) || null,
           email: normStr(row.email) || null,
         })
         if (insErr) throw new Error(insErr.message)
+        nextDisplayOrder += 1
       }
     }
 

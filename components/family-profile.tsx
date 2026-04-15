@@ -1,11 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Edit2, Trash2, MapPin, Save, X, Loader2, Plus } from 'lucide-react'
-import { Family } from '@/types'
-import { updateFamily, deleteFamily } from '@/lib/actions'
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  Edit2,
+  Trash2,
+  MapPin,
+  Save,
+  X,
+  Loader2,
+  Plus,
+  ArrowUpDown,
+  GripVertical,
+} from 'lucide-react'
+import { Family, Member } from '@/types'
+import { updateFamily, deleteFamily, reorderMembers } from '@/lib/actions'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,10 +54,53 @@ import { PhotoUpload } from '@/components/photo-upload'
 import { MemberCard } from '@/components/member-card'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
-import { formatMemberDisplayLine } from '@/lib/member-display'
+import { formatMemberDisplayLine, sortMembersForDisplay } from '@/lib/member-display'
 
 interface FamilyProfileProps {
   family: Family
+}
+
+function memberFullName(member: Member): string {
+  return [member.first_name, member.last_name].map((part) => part.trim()).filter(Boolean).join(' ')
+}
+
+function SortableMemberRow({ member }: { member: Member }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: member.id,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: transform
+          ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
+          : undefined,
+        transition,
+      }}
+      className={`flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm ${
+        isDragging ? 'border-[#7A9C49] shadow-md' : 'border-slate-200'
+      }`}
+    >
+      <button
+        type="button"
+        className="rounded-md border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50"
+        style={{ touchAction: 'none' }}
+        aria-label={`Drag to reorder ${memberFullName(member)}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-slate-800">{memberFullName(member)}</p>
+        <p className="text-sm text-slate-500">
+          {member.role.charAt(0).toUpperCase()}
+          {member.role.slice(1)}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
@@ -52,6 +121,18 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
     photo_position_y: initialFamily.photo_position_y ?? 50,
     notes: initialFamily.notes ?? '',
   })
+  const [reordering, setReordering] = useState(false)
+  const [savingOrder, setSavingOrder] = useState(false)
+  const [draftOrder, setDraftOrder] = useState<string[]>([])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   function update(field: string, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -119,11 +200,59 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
   const fullAddress = [family.mailing_address, location, family.zip]
     .filter(Boolean)
     .join(' · ')
+  const sortedMembers = sortMembersForDisplay(family.members ?? [])
+  const membersById = useMemo(
+    () => new Map((family.members ?? []).map((member) => [member.id, member])),
+    [family.members]
+  )
+  const draftMembers = draftOrder.map((id) => membersById.get(id)).filter((member): member is Member => Boolean(member))
 
-  const sortedMembers = [...(family.members ?? [])].sort((a, b) => {
-    const order: Record<string, number> = { adult: 0, child: 1, other: 2 }
-    return (order[a.role] ?? 3) - (order[b.role] ?? 3)
-  })
+  function handleStartReorder() {
+    setDraftOrder(sortedMembers.map((member) => member.id))
+    setReordering(true)
+  }
+
+  function handleCancelReorder() {
+    setDraftOrder([])
+    setReordering(false)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    setDraftOrder((current) => {
+      const oldIndex = current.indexOf(String(active.id))
+      const newIndex = current.indexOf(String(over.id))
+      if (oldIndex === -1 || newIndex === -1) return current
+      return arrayMove(current, oldIndex, newIndex)
+    })
+  }
+
+  async function handleSaveOrder() {
+    if (draftOrder.length === 0) return
+
+    setSavingOrder(true)
+    try {
+      await reorderMembers(family.id, draftOrder)
+      const nextOrder = new Map(draftOrder.map((id, index) => [id, index]))
+      setFamily((prev) => ({
+        ...prev,
+        members: prev.members?.map((member) => ({
+          ...member,
+          display_order: nextOrder.get(member.id) ?? member.display_order,
+        })),
+      }))
+      setDraftOrder([])
+      setReordering(false)
+      toast.success('Member order saved')
+      router.refresh()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save member order')
+    } finally {
+      setSavingOrder(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -316,12 +445,45 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800">Members</h2>
-          <Button asChild size="sm" variant="outline">
-            <Link href={`/families/${family.id}/members/new`}>
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Add Member
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {reordering ? (
+              <>
+                <Button variant="outline" size="sm" onClick={handleCancelReorder} disabled={savingOrder}>
+                  <X className="mr-1.5 h-3.5 w-3.5" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-[#7A9C49] hover:bg-[#6B8A3D]"
+                  onClick={handleSaveOrder}
+                  disabled={savingOrder}
+                >
+                  {savingOrder ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Save Order
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleStartReorder}
+                disabled={sortedMembers.length < 2}
+              >
+                <ArrowUpDown className="mr-1.5 h-3.5 w-3.5" />
+                Reorder
+              </Button>
+            )}
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/families/${family.id}/members/new`}>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Member
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {sortedMembers.length === 0 ? (
@@ -333,6 +495,21 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                 Add first member
               </Link>
             </Button>
+          </div>
+        ) : reordering ? (
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">
+              Drag members into the order you want their names to appear throughout the directory.
+            </p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={draftOrder} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {draftMembers.map((member) => (
+                    <SortableMemberRow key={member.id} member={member} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

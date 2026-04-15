@@ -7,9 +7,21 @@ const ROLE_ORDER: Record<Member['role'], number> = {
 }
 
 export function sortMembersForDisplay(members: Member[]): Member[] {
-  return [...members].sort(
-    (a, b) => (ROLE_ORDER[a.role] ?? 2) - (ROLE_ORDER[b.role] ?? 2)
-  )
+  return [...members].sort((a, b) => {
+    const orderDelta = (a.display_order ?? 0) - (b.display_order ?? 0)
+    if (orderDelta !== 0) return orderDelta
+
+    const roleDelta = (ROLE_ORDER[a.role] ?? 2) - (ROLE_ORDER[b.role] ?? 2)
+    if (roleDelta !== 0) return roleDelta
+
+    const createdAtDelta =
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    if (createdAtDelta !== 0) return createdAtDelta
+
+    return `${a.first_name} ${a.last_name}`.localeCompare(
+      `${b.first_name} ${b.last_name}`
+    )
+  })
 }
 
 function fullName(m: Member): string {

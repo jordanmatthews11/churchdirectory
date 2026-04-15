@@ -23,6 +23,7 @@ export interface Member {
   first_name: string
   last_name: string
   role: 'adult' | 'child' | 'other'
+  display_order: number
   bio: string | null
   member_since: string | null
   phone: string | null
