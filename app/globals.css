@@ -260,6 +260,7 @@
 
 .back-page-content p {
   margin: 0 0 0.14in;
+  min-height: 1em;
 }
 
 .back-page-content h1,
@@ -301,6 +302,7 @@
 
 .back-page-editor p {
   margin: 0 0 0.75rem;
+  min-height: 1em;
 }
 
 .back-page-editor h1 {
