@@ -10,6 +10,7 @@ import { deleteDirectoryAsset, uploadDirectoryAsset } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { BackPageEditor } from '@/components/directory/back-page-editor'
 
 const UPLOAD_MAX_BYTES = 4 * 1024 * 1024 // 4 MB (Vercel body limit)
 
@@ -447,10 +448,11 @@ export function PropertiesPanel({
       )}
 
       {pageType === 'back' && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900">Back Page</h3>
-          <p className="text-sm text-slate-600">Blank back page -- no settings needed</p>
-        </div>
+        <BackPageEditor
+          initialHtml={settings.back_page_html}
+          onSettingsSaved={onSettingsSaved}
+          onPreviewChange={onPreviewChange}
+        />
       )}
     </aside>
   )

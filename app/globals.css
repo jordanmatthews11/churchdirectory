@@ -247,6 +247,90 @@
   background: #ffffff;
 }
 
+.back-page-content {
+  position: absolute;
+  inset: 0;
+  padding: 0.65in;
+  color: #0f172a;
+  font-size: 12pt;
+  line-height: 1.5;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.back-page-content p {
+  margin: 0 0 0.14in;
+}
+
+.back-page-content h1,
+.back-page-content h2,
+.back-page-content h3 {
+  margin: 0 0 0.12in;
+  line-height: 1.25;
+}
+
+.back-page-content h1 {
+  font-size: 22pt;
+}
+
+.back-page-content h2 {
+  font-size: 18pt;
+}
+
+.back-page-content h3 {
+  font-size: 15pt;
+}
+
+.back-page-content ul,
+.back-page-content ol {
+  margin: 0 0 0.14in 0.24in;
+  padding: 0;
+}
+
+.back-page-content li {
+  margin-bottom: 0.06in;
+}
+
+.back-page-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.back-page-editor p {
+  margin: 0 0 0.75rem;
+}
+
+.back-page-editor h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+}
+
+.back-page-editor h2 {
+  font-size: 1.4rem;
+  line-height: 1.25;
+  margin: 0 0 0.65rem;
+}
+
+.back-page-editor h3 {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  margin: 0 0 0.6rem;
+}
+
+.back-page-editor ul,
+.back-page-editor ol {
+  margin: 0 0 0.75rem 1.2rem;
+}
+
+.back-page-editor:focus-visible {
+  outline: 2px solid #7a9c49;
+  outline-offset: 2px;
+}
+
 .directory-grid {
   width: 100%;
   height: 100%;

@@ -520,7 +520,7 @@ export default function DirectoryPage() {
               />
             )}
             {selectedPage.kind === 'leadership' && <LeadershipPage settings={settings} />}
-            {selectedPage.kind === 'back' && <BackPage />}
+            {selectedPage.kind === 'back' && <BackPage settings={settings} />}
           </div>
         </div>
       </main>
@@ -537,7 +537,7 @@ export default function DirectoryPage() {
         <TitlePage settings={settings} />
         <DirectoryGrid families={families} placeholderUrl={settings?.family_placeholder_url ?? settings?.logo_url ?? null} />
         <LeadershipPage settings={settings} />
-        <BackPage />
+        <BackPage settings={settings} />
       </div>
     </div>
   )

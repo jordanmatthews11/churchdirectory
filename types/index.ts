@@ -102,6 +102,7 @@ export interface DirectorySettings {
   cover_year: string
   intro_text: string
   date_label: string
+  back_page_html: string | null
   /** Elders, deacons, deaconesses, staff list for the Leadership PDF page (JSONB). */
   leadership_data?: LeadershipData | null
   updated_at: string
