@@ -59,6 +59,39 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPassword() {
+    const suggestedEmail = email.trim()
+    const enteredEmail = window.prompt(
+      'Enter the email address for your password reset link.',
+      suggestedEmail
+    )
+
+    if (enteredEmail === null) return
+
+    const resetEmail = enteredEmail.trim()
+    if (!resetEmail) {
+      toast.error('Enter an email address to reset your password')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const supabase = createClient()
+      const origin = window.location.origin
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${origin}/auth/callback?next=/reset-password`,
+      })
+      if (error) throw error
+
+      setEmail(resetEmail)
+      toast.success('Password reset email sent. Check your inbox for the link.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not send reset email')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md">
@@ -102,6 +135,17 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                 />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0 text-sm text-[#4A6A2A]"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                >
+                  Forgot password?
+                </Button>
               </div>
               <Button type="submit" className="w-full bg-[#7A9C49] hover:bg-[#6B8A3D]" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
