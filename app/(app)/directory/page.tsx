@@ -512,7 +512,13 @@ export default function DirectoryPage() {
           <div className="builder-canvas-frame">
             {selectedPage.kind === 'cover' && <CoverPage settings={settings} />}
             {selectedPage.kind === 'title' && <TitlePage settings={settings} />}
-            {selectedPage.kind === 'grid' && <DirectoryGrid families={families} onlyPageIndex={selectedGridPageIndex} />}
+            {selectedPage.kind === 'grid' && (
+              <DirectoryGrid
+                families={families}
+                onlyPageIndex={selectedGridPageIndex}
+                placeholderUrl={settings?.family_placeholder_url ?? settings?.logo_url ?? null}
+              />
+            )}
             {selectedPage.kind === 'leadership' && <LeadershipPage settings={settings} />}
             {selectedPage.kind === 'back' && <BackPage />}
           </div>
@@ -529,7 +535,7 @@ export default function DirectoryPage() {
       <div ref={exportCanvasRef} className="directory-export-hidden" aria-hidden="true">
         <CoverPage settings={settings} />
         <TitlePage settings={settings} />
-        <DirectoryGrid families={families} />
+        <DirectoryGrid families={families} placeholderUrl={settings?.family_placeholder_url ?? settings?.logo_url ?? null} />
         <LeadershipPage settings={settings} />
         <BackPage />
       </div>

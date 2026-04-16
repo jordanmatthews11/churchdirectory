@@ -79,7 +79,7 @@ export async function deletePhoto(_bucket: PhotoBucket, url: string): Promise<vo
   return r2Delete(url)
 }
 
-export type DirectoryAssetKind = 'cover' | 'title' | 'logo'
+export type DirectoryAssetKind = 'cover' | 'title' | 'logo' | 'placeholder'
 
 export async function uploadDirectoryAsset(
   file: File,

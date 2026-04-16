@@ -5,6 +5,7 @@ import { formatMemberDisplayLine } from '@/lib/member-display'
 
 export interface DirectoryCellProps {
   family: Family & { members?: Member[] }
+  placeholderUrl?: string | null
 }
 
 function getInitials(name: string) {
@@ -17,7 +18,7 @@ function getInitials(name: string) {
   return initials || '?'
 }
 
-export function DirectoryCell({ family }: DirectoryCellProps) {
+export function DirectoryCell({ family, placeholderUrl }: DirectoryCellProps) {
   const members = family.members ?? []
   const memberLine = formatMemberDisplayLine(
     members,
@@ -42,6 +43,13 @@ export function DirectoryCell({ family }: DirectoryCellProps) {
             style={{
               objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
             }}
+          />
+        ) : placeholderUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={placeholderUrl}
+            alt="Family photo placeholder"
+            className="absolute inset-0 h-full w-full object-contain p-2"
           />
         ) : (
           <div className="directory-photo-placeholder">

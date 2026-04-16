@@ -1,5 +1,6 @@
 import { getAdmins } from '@/lib/actions'
 import { AdminsManager } from '@/components/admins-manager'
+import { PlaceholderUploader } from '@/components/placeholder-uploader'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -13,6 +14,10 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
         <p className="mt-1 text-sm text-slate-500">Manage admin access to the directory</p>
+      </div>
+
+      <div className="rounded-xl border bg-white p-4">
+        <PlaceholderUploader />
       </div>
 
       <div className="rounded-xl border bg-white p-4">

@@ -89,6 +89,7 @@ export interface DirectorySettings {
   cover_image_url: string | null
   title_image_url: string | null
   logo_url: string | null
+  family_placeholder_url: string | null
   logo_scale: number
   logo_offset_y: number
   logo_crop_top: number

@@ -6,9 +6,10 @@ import { formatMemberDisplayLine } from '@/lib/member-display'
 
 interface FamilyCardProps {
   family: Family & { members?: Member[] }
+  placeholderUrl?: string | null
 }
 
-export function FamilyCard({ family }: FamilyCardProps) {
+export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
   const location = [family.city, family.state].filter(Boolean).join(', ')
   const memberNames = formatMemberDisplayLine(
     family.members,
@@ -30,6 +31,13 @@ export function FamilyCard({ family }: FamilyCardProps) {
               style={{
                 objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
               }}
+            />
+          ) : placeholderUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={placeholderUrl}
+              alt="Family photo placeholder"
+              className="max-h-44 w-full rounded object-contain p-6"
             />
           ) : (
             <div className="flex h-28 items-center justify-center">

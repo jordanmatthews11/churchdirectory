@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Plus, Upload, Users } from 'lucide-react'
-import { getFamiliesWithMembers } from '@/lib/actions'
+import { getDirectorySettings, getFamiliesWithMembers } from '@/lib/actions'
 import { Button } from '@/components/ui/button'
 import { FamilyCard } from '@/components/family-card'
 import { FamilySearch } from '@/components/family-search'
@@ -14,7 +14,8 @@ export default async function DashboardPage({
   searchParams: Promise<{ q?: string }>
 }) {
   const { q } = await searchParams
-  const allFamilies = await getFamiliesWithMembers()
+  const [allFamilies, settings] = await Promise.all([getFamiliesWithMembers(), getDirectorySettings()])
+  const placeholderUrl = settings?.family_placeholder_url ?? settings?.logo_url ?? null
   const families = q
     ? allFamilies.filter((f) =>
         f.name.toLowerCase().includes(q.toLowerCase())
@@ -82,7 +83,7 @@ export default async function DashboardPage({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {families.map((family) => (
-            <FamilyCard key={family.id} family={family} />
+            <FamilyCard key={family.id} family={family} placeholderUrl={placeholderUrl} />
           ))}
         </div>
       )}

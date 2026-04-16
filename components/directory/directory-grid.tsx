@@ -6,6 +6,7 @@ import { DirectoryCell } from '@/components/directory/directory-cell'
 export interface DirectoryGridProps {
   families: (Family & { members?: Member[] })[]
   onlyPageIndex?: number
+  placeholderUrl?: string | null
 }
 
 export const DIRECTORY_FAMILIES_PER_PAGE = 16
@@ -14,7 +15,7 @@ export function getDirectoryPageCount(familyCount: number) {
   return Math.max(1, Math.ceil(familyCount / DIRECTORY_FAMILIES_PER_PAGE))
 }
 
-export function DirectoryGrid({ families, onlyPageIndex }: DirectoryGridProps) {
+export function DirectoryGrid({ families, onlyPageIndex, placeholderUrl }: DirectoryGridProps) {
   const pages: typeof families[] = []
 
   for (let i = 0; i < families.length; i += DIRECTORY_FAMILIES_PER_PAGE) {
@@ -49,7 +50,7 @@ export function DirectoryGrid({ families, onlyPageIndex }: DirectoryGridProps) {
           <section key={pageIndex} className="directory-page directory-grid-page break-after-page">
             <div className="directory-grid">
               {cells.slice(0, DIRECTORY_FAMILIES_PER_PAGE).map((family) => (
-                <DirectoryCell key={family.id} family={family} />
+                <DirectoryCell key={family.id} family={family} placeholderUrl={placeholderUrl} />
               ))}
             </div>
           </section>

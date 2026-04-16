@@ -229,6 +229,7 @@ export async function updateDirectorySettings(
       | 'cover_image_url'
       | 'title_image_url'
       | 'logo_url'
+      | 'family_placeholder_url'
       | 'logo_scale'
       | 'logo_offset_y'
       | 'logo_crop_top'
