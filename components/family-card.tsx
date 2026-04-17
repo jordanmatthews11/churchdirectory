@@ -25,6 +25,7 @@ export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
     currentFamily.members,
     currentFamily.different_last_names ?? false
   )
+  const hasFooterMetadata = Boolean(location || currentFamily.mailing_address)
 
   useEffect(() => {
     setCurrentFamily(family)
@@ -70,69 +71,71 @@ export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
           }
         }}
       >
-        <div className="flex items-center justify-center bg-gradient-to-br from-[#F4F4EC] to-slate-100 p-3">
-          {currentFamily.photo_url ? (
-            <button
-              type="button"
-              className="relative block w-full"
-              onClick={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                setEditorOpen(true)
-              }}
-              aria-label={`Adjust ${currentFamily.name} family photo`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={currentFamily.photo_url}
-                alt={`${currentFamily.name} family`}
-                className={`max-h-44 w-full rounded ${getPhotoFitClass(currentFamily.photo_fit)}`}
-                style={getPhotoPresentationStyle({
-                  fit: currentFamily.photo_fit,
-                  positionX: currentFamily.photo_position_x,
-                  positionY: currentFamily.photo_position_y,
-                  zoom: currentFamily.photo_zoom,
-                })}
-              />
-              <span className="absolute inset-x-3 bottom-3 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
-                Adjust photo
-              </span>
-            </button>
-          ) : placeholderUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={placeholderUrl}
-              alt="Family photo placeholder"
-              className="max-h-44 w-full rounded object-contain p-6"
-            />
-          ) : (
-            <div className="flex h-28 items-center justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
-                <span className="text-2xl font-bold text-[#7A9C49]">
-                  {currentFamily.name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
         <CardContent className="p-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-slate-800 transition-colors group-hover:text-[#7A9C49]">
-              {currentFamily.name}
-            </h3>
-            <p className="mt-0.5 line-clamp-2 min-h-9 text-sm text-slate-500">
-              {memberNames || 'No members'}
-            </p>
+          <div className="directory-cell">
+            <div className="directory-photo">
+              {currentFamily.photo_url ? (
+                <button
+                  type="button"
+                  className="absolute inset-0 block h-full w-full"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setEditorOpen(true)
+                  }}
+                  aria-label={`Adjust ${currentFamily.name} family photo`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentFamily.photo_url}
+                    alt={`${currentFamily.name} family`}
+                    className={`absolute inset-0 h-full w-full ${getPhotoFitClass(currentFamily.photo_fit)}`}
+                    style={getPhotoPresentationStyle({
+                      fit: currentFamily.photo_fit,
+                      positionX: currentFamily.photo_position_x,
+                      positionY: currentFamily.photo_position_y,
+                      zoom: currentFamily.photo_zoom,
+                    })}
+                  />
+                  <span className="absolute inset-x-3 bottom-3 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+                    Adjust photo
+                  </span>
+                </button>
+              ) : placeholderUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={placeholderUrl}
+                  alt="Family photo placeholder"
+                  className="absolute inset-0 h-full w-full object-contain p-2"
+                />
+              ) : (
+                <div className="directory-photo-placeholder">
+                  <span className="directory-photo-initials">
+                    {(currentFamily.name.trim().charAt(0) || '?').toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="directory-names">
+              <div className="directory-family-name">{currentFamily.name || '\u00A0'}</div>
+              <div className="directory-member-names">{memberNames || '\u00A0'}</div>
+            </div>
+
+            {hasFooterMetadata ? (
+              <div className="mt-2 w-full text-center">
+                {location ? (
+                  <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                    <MapPin className="h-3 w-3" />
+                    {location}
+                  </p>
+                ) : null}
+                {currentFamily.mailing_address ? (
+                  <p className="mt-0.5 text-xs text-slate-400">{currentFamily.mailing_address}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-          {location && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
-              <MapPin className="h-3 w-3" />
-              {location}
-            </p>
-          )}
-          {currentFamily.mailing_address && (
-            <p className="mt-0.5 text-xs text-slate-400">{currentFamily.mailing_address}</p>
-          )}
         </CardContent>
       </Card>
 
