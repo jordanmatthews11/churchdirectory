@@ -216,6 +216,9 @@ export default function DirectoryPage() {
   const [exporting, setExporting] = useState<'web' | 'book' | null>(null)
   const [selectedPageIndex, setSelectedPageIndex] = useState(0)
   const [titlePhotoEditorNonce, setTitlePhotoEditorNonce] = useState(0)
+  const [zoomMode, setZoomMode] = useState<'fit' | 'manual'>('fit')
+  const [manualZoom, setManualZoom] = useState(1)
+  const [autoFitScale, setAutoFitScale] = useState(1)
   const stageRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
   const exportCanvasRef = useRef<HTMLDivElement>(null)
@@ -254,8 +257,10 @@ export default function DirectoryPage() {
 
     const updatePreviewScale = () => {
       const availableWidth = Math.max(stage.clientWidth - STAGE_PADDING_PX, 0)
-      const scale = Math.min(1, availableWidth / PAGE_WIDTH_PX)
-      frame.style.setProperty('--preview-scale', String(scale || 1))
+      const fitScale = Math.min(1, availableWidth / PAGE_WIDTH_PX) || 1
+      setAutoFitScale(fitScale)
+      const nextScale = zoomMode === 'fit' ? fitScale : manualZoom
+      frame.style.setProperty('--preview-scale', String(nextScale || 1))
     }
 
     updatePreviewScale()
@@ -264,7 +269,7 @@ export default function DirectoryPage() {
     observer.observe(stage)
 
     return () => observer.disconnect()
-  }, [])
+  }, [zoomMode, manualZoom])
 
   async function handleSettingsSaved(values: Partial<DirectorySettings>) {
     const next = await updateDirectorySettings(values)
@@ -489,6 +494,15 @@ export default function DirectoryPage() {
 
   const selectedPage = pageItems[selectedPageIndex] ?? pageItems[0]
   const selectedGridPageIndex = Math.max(0, selectedPageIndex - GRID_START_INDEX)
+  const currentPreviewZoom = zoomMode === 'fit' ? autoFitScale : manualZoom
+
+  function adjustManualZoom(delta: number) {
+    setZoomMode('manual')
+    setManualZoom((value) => {
+      const nextValue = value + delta
+      return Math.min(2, Math.max(0.25, Number(nextValue.toFixed(2))))
+    })
+  }
 
   return (
     <div className="directory-builder">
@@ -513,6 +527,49 @@ export default function DirectoryPage() {
         <div className="builder-toolbar flex flex-wrap gap-2">
           <div className="min-w-0 flex-1 text-sm font-semibold text-slate-700">{selectedPage.label} Page</div>
           <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-white p-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={
+                  zoomMode === 'fit'
+                    ? 'border-[#7A9C49] bg-[#F4F4EC] text-[#1A1919] hover:bg-[#ECEBD9]'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                }
+                onClick={() => setZoomMode('fit')}
+              >
+                Fit
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-slate-200 px-2 text-slate-700 hover:bg-slate-50"
+                onClick={() => adjustManualZoom(-0.1)}
+              >
+                -
+              </Button>
+              <button
+                type="button"
+                className="min-w-[3.75rem] rounded-md px-2 py-1 text-sm font-medium tabular-nums text-slate-700 hover:bg-slate-100"
+                onClick={() => {
+                  setZoomMode('manual')
+                  setManualZoom(1)
+                }}
+              >
+                {Math.round(currentPreviewZoom * 100)}%
+              </button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-slate-200 px-2 text-slate-700 hover:bg-slate-50"
+                onClick={() => adjustManualZoom(0.1)}
+              >
+                +
+              </Button>
+            </div>
             <Button
               type="button"
               variant="outline"
