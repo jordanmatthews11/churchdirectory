@@ -9,13 +9,10 @@ import { DirectorySettings } from '@/types'
 import { deleteDirectoryAsset, uploadDirectoryAsset } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { BackPageEditor } from '@/components/directory/back-page-editor'
 import { CollapsibleSection } from '@/components/directory/collapsible-section'
+import { TitleIntroEditor } from '@/components/directory/title-intro-editor'
 import {
-  DEFAULT_INTRO_ALIGN,
-  DEFAULT_INTRO_FONT_SIZE,
-  DEFAULT_INTRO_LINE_HEIGHT,
   DEFAULT_INTRO_PARAGRAPH_SPACING,
   DEFAULT_TITLE_IMAGE_GAP,
   DEFAULT_TITLE_IMAGE_OFFSET_Y,
@@ -334,200 +331,14 @@ export function PropertiesPanel({
 
           <CollapsibleSection
             title="Intro Text"
-            description="Edit the text and adjust typography, spacing, and color without changing current defaults."
+            description="Use the same clean formatting toolbar as the Back page editor."
             defaultOpen
           >
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-600">Intro Text</label>
-                <Textarea
-                  value={form.intro_text}
-                  rows={10}
-                  onChange={(e) => updateTopLevel('intro_text', e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">Font Size</label>
-                    <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.font_size}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={10}
-                    max={24}
-                    step={1}
-                    value={form.title_page_layout.intro.font_size}
-                    onChange={(e) =>
-                      updateLayout({ intro: { font_size: Number(e.target.value) } })
-                    }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">Line Height</label>
-                    <span className="text-[11px] text-slate-500">
-                      {form.title_page_layout.intro.line_height.toFixed(2)}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={2}
-                    step={0.05}
-                    value={form.title_page_layout.intro.line_height}
-                    onChange={(e) =>
-                      updateLayout({ intro: { line_height: Number(e.target.value) } })
-                    }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-600">Alignment</label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(['left', 'center', 'right', 'justify'] as const).map((align) => (
-                    <Button
-                      key={align}
-                      type="button"
-                      variant={form.title_page_layout.intro.align === align ? 'default' : 'outline'}
-                      className={form.title_page_layout.intro.align === align ? 'bg-[#7A9C49] hover:bg-[#6B8A3D]' : ''}
-                      onClick={() => updateLayout({ intro: { align } })}
-                    >
-                      {align}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant={form.title_page_layout.intro.bold ? 'default' : 'outline'}
-                  className={form.title_page_layout.intro.bold ? 'bg-[#7A9C49] hover:bg-[#6B8A3D]' : ''}
-                  onClick={() =>
-                    updateLayout({ intro: { bold: !form.title_page_layout.intro.bold } })
-                  }
-                >
-                  Bold
-                </Button>
-                <Button
-                  type="button"
-                  variant={form.title_page_layout.intro.italic ? 'default' : 'outline'}
-                  className={form.title_page_layout.intro.italic ? 'bg-[#7A9C49] hover:bg-[#6B8A3D]' : ''}
-                  onClick={() =>
-                    updateLayout({ intro: { italic: !form.title_page_layout.intro.italic } })
-                  }
-                >
-                  Italic
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-600">Text Color</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={form.title_page_layout.intro.color || '#111827'}
-                    onChange={(e) => updateLayout({ intro: { color: e.target.value } })}
-                    className="h-9 w-12 rounded border border-slate-200 bg-white p-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateLayout({ intro: { color: '' } })}
-                  >
-                    Reset color
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">Top Margin</label>
-                    <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={80}
-                    step={2}
-                    value={form.title_page_layout.intro.margin_top}
-                    onChange={(e) =>
-                      updateLayout({ intro: { margin_top: Number(e.target.value) } })
-                    }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
-                    <span className="text-[11px] text-slate-500">
-                      {form.title_page_layout.intro.margin_bottom}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={80}
-                    step={2}
-                    value={form.title_page_layout.intro.margin_bottom}
-                    onChange={(e) =>
-                      updateLayout({ intro: { margin_bottom: Number(e.target.value) } })
-                    }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
-                  <span className="text-[11px] text-slate-500">
-                    {form.title_page_layout.intro.paragraph_spacing}px
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={32}
-                  step={1}
-                  value={form.title_page_layout.intro.paragraph_spacing}
-                  onChange={(e) =>
-                    updateLayout({ intro: { paragraph_spacing: Number(e.target.value) } })
-                  }
-                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                />
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  updateLayout({
-                    intro: {
-                      font_size: DEFAULT_INTRO_FONT_SIZE,
-                      line_height: DEFAULT_INTRO_LINE_HEIGHT,
-                      align: DEFAULT_INTRO_ALIGN,
-                      color: '',
-                      bold: false,
-                      italic: false,
-                      margin_top: DEFAULT_TITLE_LOGO_GAP,
-                      margin_bottom: 0,
-                      paragraph_spacing: DEFAULT_INTRO_PARAGRAPH_SPACING,
-                    },
-                  })
-                }
-              >
-                Reset intro formatting
-              </Button>
-            </div>
+            <TitleIntroEditor
+              introText={form.intro_text}
+              introLayout={form.title_page_layout.intro}
+              onChange={updateLayout}
+            />
           </CollapsibleSection>
 
           <CollapsibleSection
@@ -649,6 +460,65 @@ export function PropertiesPanel({
             description="Fine-tune the gaps between the logo, intro text, image, and date."
           >
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Top Margin</label>
+                    <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={80}
+                    step={2}
+                    value={form.title_page_layout.intro.margin_top}
+                    onChange={(e) =>
+                      updateLayout({ intro: { margin_top: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
+                    <span className="text-[11px] text-slate-500">
+                      {form.title_page_layout.intro.margin_bottom}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={80}
+                    step={2}
+                    value={form.title_page_layout.intro.margin_bottom}
+                    onChange={(e) =>
+                      updateLayout({ intro: { margin_bottom: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
+                  <span className="text-[11px] text-slate-500">
+                    {form.title_page_layout.intro.paragraph_spacing}px
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={form.title_page_layout.intro.paragraph_spacing}
+                  onChange={(e) =>
+                    updateLayout({ intro: { paragraph_spacing: Number(e.target.value) } })
+                  }
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                />
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-slate-600">Gap Below Logo</label>
@@ -712,6 +582,11 @@ export function PropertiesPanel({
                 size="sm"
                 onClick={() =>
                   updateLayout({
+                      intro: {
+                        margin_top: 0,
+                        margin_bottom: 0,
+                        paragraph_spacing: DEFAULT_INTRO_PARAGRAPH_SPACING,
+                      },
                     spacing: {
                       below_logo: DEFAULT_TITLE_LOGO_GAP,
                       below_intro: 0,

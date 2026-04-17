@@ -33,6 +33,7 @@ export function resolveTitlePageLayout(
 
   return {
     intro: {
+      intro_html: layout?.intro?.intro_html ?? '',
       font_size: layout?.intro?.font_size ?? DEFAULT_INTRO_FONT_SIZE,
       line_height: layout?.intro?.line_height ?? DEFAULT_INTRO_LINE_HEIGHT,
       align: layout?.intro?.align ?? DEFAULT_INTRO_ALIGN,
@@ -84,6 +85,7 @@ export function patchTitlePageLayout(
 
   return {
     intro: {
+      intro_html: merged.intro.intro_html,
       font_size: merged.intro.font_size,
       line_height: merged.intro.line_height,
       align: merged.intro.align,

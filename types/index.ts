@@ -4,6 +4,7 @@ export type TextAlignMode = 'left' | 'center' | 'right' | 'justify'
 
 export interface TitlePageLayout {
   intro?: {
+    intro_html?: string
     font_size?: number
     line_height?: number
     align?: TextAlignMode

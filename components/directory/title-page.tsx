@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 
@@ -38,6 +38,13 @@ export function TitlePage({
   const logoCropLeft = settings.logo_crop_left ?? 0
   const logoCropRight = settings.logo_crop_right ?? 0
   const layout = resolveTitlePageLayout(settings.title_page_layout)
+  const hasRichIntro = Boolean(layout.intro.intro_html && layout.intro.intro_html.trim() && layout.intro.intro_html !== '<p></p>')
+  const richIntroStyle = {
+    marginTop: layout.spacing.below_logo,
+    marginBottom: layout.intro.margin_bottom,
+    paddingTop: layout.intro.margin_top,
+    '--title-intro-gap': `${layout.intro.paragraph_spacing}px`,
+  } as CSSProperties & Record<'--title-intro-gap', string>
   const editorOpen =
     manualEditorOpen || Boolean(photoEditorNonce && settings.title_image_url)
 
@@ -108,30 +115,38 @@ export function TitlePage({
           </div>
 
           {/* Intro text should appear above the image, like the Canva-style layout request. */}
-          <div
-            style={{
-              marginTop: layout.spacing.below_logo,
-              marginBottom: layout.intro.margin_bottom,
-              fontSize: layout.intro.font_size,
-              lineHeight: String(layout.intro.line_height),
-              textAlign: layout.intro.align,
-              color: layout.intro.color || undefined,
-              fontWeight: layout.intro.bold ? 700 : undefined,
-              fontStyle: layout.intro.italic ? 'italic' : undefined,
-            }}
-          >
-            {paragraphs.map((p, idx) => (
-              <p
-                key={idx}
-                style={{
-                  marginTop: idx === 0 ? layout.intro.margin_top : 0,
-                  marginBottom: idx === paragraphs.length - 1 ? 0 : layout.intro.paragraph_spacing,
-                }}
-              >
-                {p}
-              </p>
-            ))}
-          </div>
+          {hasRichIntro ? (
+            <div
+              className="title-page-intro-rich"
+              style={richIntroStyle}
+              dangerouslySetInnerHTML={{ __html: layout.intro.intro_html }}
+            />
+          ) : (
+            <div
+              style={{
+                marginTop: layout.spacing.below_logo,
+                marginBottom: layout.intro.margin_bottom,
+                fontSize: layout.intro.font_size,
+                lineHeight: String(layout.intro.line_height),
+                textAlign: layout.intro.align,
+                color: layout.intro.color || undefined,
+                fontWeight: layout.intro.bold ? 700 : undefined,
+                fontStyle: layout.intro.italic ? 'italic' : undefined,
+              }}
+            >
+              {paragraphs.map((p, idx) => (
+                <p
+                  key={idx}
+                  style={{
+                    marginTop: idx === 0 ? layout.intro.margin_top : 0,
+                    marginBottom: idx === paragraphs.length - 1 ? 0 : layout.intro.paragraph_spacing,
+                  }}
+                >
+                  {p}
+                </p>
+              ))}
+            </div>
+          )}
 
           <div className="min-h-0 flex-1" />
 
