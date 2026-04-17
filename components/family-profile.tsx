@@ -55,6 +55,12 @@ import { MemberCard } from '@/components/member-card'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
 import { formatMemberDisplayLine, sortMembersForDisplay } from '@/lib/member-display'
+import { PhotoFrameEditor } from '@/components/photo-frame-editor'
+import {
+  DEFAULT_PHOTO_ZOOM,
+  getPhotoFitClass,
+  getPhotoPresentationStyle,
+} from '@/lib/photo-presentation'
 
 interface FamilyProfileProps {
   family: Family
@@ -108,6 +114,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
   const [family, setFamily] = useState(initialFamily)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
   const [form, setForm] = useState({
     name: initialFamily.name,
     different_last_names: initialFamily.different_last_names ?? false,
@@ -119,6 +126,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
     photo_fit: initialFamily.photo_fit ?? 'cover',
     photo_position_x: initialFamily.photo_position_x ?? 50,
     photo_position_y: initialFamily.photo_position_y ?? 50,
+    photo_zoom: initialFamily.photo_zoom ?? DEFAULT_PHOTO_ZOOM,
     notes: initialFamily.notes ?? '',
   })
   const [reordering, setReordering] = useState(false)
@@ -156,6 +164,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
         photo_fit: form.photo_fit,
         photo_position_x: form.photo_position_x,
         photo_position_y: form.photo_position_y,
+        photo_zoom: form.photo_zoom,
         notes: form.notes || null,
       })
       setFamily((prev) => ({ ...prev, ...updated }))
@@ -180,9 +189,32 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
       photo_fit: family.photo_fit ?? 'cover',
       photo_position_x: family.photo_position_x ?? 50,
       photo_position_y: family.photo_position_y ?? 50,
+      photo_zoom: family.photo_zoom ?? DEFAULT_PHOTO_ZOOM,
       notes: family.notes ?? '',
     })
     setEditing(false)
+  }
+
+  async function handleSavePhotoFrame(values: {
+    fit: Family['photo_fit']
+    positionX: number
+    positionY: number
+    zoom: number
+  }) {
+    try {
+      const updated = await updateFamily(family.id, {
+        photo_fit: values.fit,
+        photo_position_x: values.positionX,
+        photo_position_y: values.positionY,
+        photo_zoom: values.zoom,
+      })
+      setFamily((prev) => ({ ...prev, ...updated }))
+      toast.success('Family photo updated')
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update family photo')
+      throw error
+    }
   }
 
   async function handleDelete() {
@@ -332,6 +364,7 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
                   update('photo_fit', presentation.fit)
                   update('photo_position_x', presentation.positionX)
                   update('photo_position_y', presentation.positionY)
+                  update('photo_zoom', DEFAULT_PHOTO_ZOOM)
                 }}
                 onRemove={() => update('photo_url', '')}
                 size="lg"
@@ -402,18 +435,26 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
           ) : (
             <div className="flex gap-6">
               {family.photo_url && (
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                <button
+                  type="button"
+                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 transition hover:ring-2 hover:ring-[#7A9C49]/30"
+                  onClick={() => setEditorOpen(true)}
+                  aria-label={`Adjust ${family.name} family photo`}
+                >
                   <Image
                     src={family.photo_url}
                     alt={`${family.name} family`}
                     fill
-                    className={(family.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'}
-                    style={{
-                      objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
-                    }}
+                    className={getPhotoFitClass(family.photo_fit)}
+                    style={getPhotoPresentationStyle({
+                      fit: family.photo_fit,
+                      positionX: family.photo_position_x,
+                      positionY: family.photo_position_y,
+                      zoom: family.photo_zoom,
+                    })}
                     sizes="96px"
                   />
-                </div>
+                </button>
               )}
               <div className="space-y-1.5">
                 <h2 className="text-xl font-bold text-slate-800">{family.name} Family</h2>
@@ -537,6 +578,21 @@ export function FamilyProfile({ family: initialFamily }: FamilyProfileProps) {
       </div>
 
       <Separator />
+
+      {family.photo_url ? (
+        <PhotoFrameEditor
+          open={editorOpen}
+          photoUrl={family.photo_url}
+          fit={family.photo_fit}
+          positionX={family.photo_position_x}
+          positionY={family.photo_position_y}
+          zoom={family.photo_zoom}
+          aspect={1}
+          title={`Adjust ${family.name} family photo`}
+          onOpenChange={setEditorOpen}
+          onSave={handleSavePhotoFrame}
+        />
+      ) : null}
 
       <div className="flex justify-end">
         <AlertDialog>

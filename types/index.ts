@@ -12,6 +12,7 @@ export interface Family {
   photo_fit?: PhotoFitMode | null
   photo_position_x?: number | null
   photo_position_y?: number | null
+  photo_zoom?: number | null
   notes: string | null
   created_at: string
   members?: Member[]
@@ -32,6 +33,7 @@ export interface Member {
   photo_fit?: PhotoFitMode | null
   photo_position_x?: number | null
   photo_position_y?: number | null
+  photo_zoom?: number | null
   created_at: string
 }
 

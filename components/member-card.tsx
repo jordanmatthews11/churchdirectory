@@ -29,6 +29,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { PhotoUpload } from '@/components/photo-upload'
+import { PhotoFrameEditor } from '@/components/photo-frame-editor'
+import { DEFAULT_PHOTO_ZOOM, getPhotoFitClass, getPhotoPresentationStyle } from '@/lib/photo-presentation'
 
 interface MemberCardProps {
   member: Member
@@ -52,6 +54,7 @@ const ROLE_OPTIONS: Array<{ value: MemberRole; label: string }> = [
 export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardProps) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
   const [form, setForm] = useState({
     first_name: member.first_name,
     last_name: member.last_name,
@@ -64,6 +67,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
     photo_fit: member.photo_fit ?? 'cover',
     photo_position_x: member.photo_position_x ?? 50,
     photo_position_y: member.photo_position_y ?? 50,
+    photo_zoom: member.photo_zoom ?? DEFAULT_PHOTO_ZOOM,
   })
 
   function update(field: string, value: string | number) {
@@ -89,6 +93,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
         photo_fit: form.photo_fit,
         photo_position_x: form.photo_position_x,
         photo_position_y: form.photo_position_y,
+        photo_zoom: form.photo_zoom,
       })
       onUpdate(updated)
       setEditing(false)
@@ -113,8 +118,30 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
       photo_fit: member.photo_fit ?? 'cover',
       photo_position_x: member.photo_position_x ?? 50,
       photo_position_y: member.photo_position_y ?? 50,
+      photo_zoom: member.photo_zoom ?? DEFAULT_PHOTO_ZOOM,
     })
     setEditing(false)
+  }
+
+  async function handleSavePhotoFrame(values: {
+    fit: Member['photo_fit']
+    positionX: number
+    positionY: number
+    zoom: number
+  }) {
+    try {
+      const updated = await updateMember(member.id, familyId, {
+        photo_fit: values.fit,
+        photo_position_x: values.positionX,
+        photo_position_y: values.positionY,
+        photo_zoom: values.zoom,
+      })
+      onUpdate(updated)
+      toast.success('Member photo updated')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update member photo')
+      throw error
+    }
   }
 
   async function handleDelete() {
@@ -144,6 +171,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
                 update('photo_fit', presentation.fit)
                 update('photo_position_x', presentation.positionX)
                 update('photo_position_y', presentation.positionY)
+                update('photo_zoom', DEFAULT_PHOTO_ZOOM)
               }}
               onRemove={() => update('photo_url', '')}
               size="md"
@@ -250,7 +278,7 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
         ) : (
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <MemberAvatar member={member} />
+              <MemberAvatar member={member} onClick={member.photo_url ? () => setEditorOpen(true) : undefined} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-slate-800 truncate">
@@ -352,24 +380,52 @@ export function MemberCard({ member, familyId, onUpdate, onDelete }: MemberCardP
           </div>
         )}
       </CardContent>
+      {member.photo_url ? (
+        <PhotoFrameEditor
+          open={editorOpen}
+          photoUrl={member.photo_url}
+          fit={member.photo_fit}
+          positionX={member.photo_position_x}
+          positionY={member.photo_position_y}
+          zoom={member.photo_zoom}
+          aspect={1}
+          title={`Adjust ${member.first_name} ${member.last_name}`}
+          onOpenChange={setEditorOpen}
+          onSave={handleSavePhotoFrame}
+        />
+      ) : null}
     </Card>
   )
 }
 
-function MemberAvatar({ member }: { member: Member }) {
+function MemberAvatar({
+  member,
+  onClick,
+}: {
+  member: Member
+  onClick?: () => void
+}) {
   if (member.photo_url) {
     return (
-      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-slate-100">
+      <button
+        type="button"
+        className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-slate-100 transition hover:ring-2 hover:ring-[#7A9C49]/30"
+        onClick={onClick}
+        aria-label={`Adjust ${member.first_name} ${member.last_name} photo`}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={member.photo_url}
           alt={`${member.first_name} ${member.last_name}`}
-          className={`h-full w-full ${(member.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'}`}
-          style={{
-            objectPosition: `${member.photo_position_x ?? 50}% ${member.photo_position_y ?? 50}%`,
-          }}
+          className={`h-full w-full ${getPhotoFitClass(member.photo_fit)}`}
+          style={getPhotoPresentationStyle({
+            fit: member.photo_fit,
+            positionX: member.photo_position_x,
+            positionY: member.photo_position_y,
+            zoom: member.photo_zoom,
+          })}
         />
-      </div>
+      </button>
     )
   }
   const initials = `${member.first_name.charAt(0)}${member.last_name.charAt(0)}`.toUpperCase()

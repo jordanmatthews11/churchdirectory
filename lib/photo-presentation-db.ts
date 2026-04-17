@@ -6,22 +6,22 @@ export function isMissingPhotoPresentationColumnsError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false
   const o = err as { message?: string; details?: string; hint?: string }
   const combined = [o.message, o.details, o.hint].filter(Boolean).join(' ')
-  if (!/photo_fit|photo_position/i.test(combined)) return false
+  if (!/photo_fit|photo_position|photo_zoom/i.test(combined)) return false
   return /column|schema cache|does not exist|could not find|PGRST/i.test(combined)
 }
 
 /** Strip presentation fields for retry when DB has not been migrated yet. */
 export function omitPhotoPresentationFields<T extends Record<string, unknown>>(values: T): T {
-  const {
-    photo_fit: _a,
-    photo_position_x: _b,
-    photo_position_y: _c,
-    ...rest
-  } = values as T & {
+  const rest = { ...values } as T & {
     photo_fit?: unknown
     photo_position_x?: unknown
     photo_position_y?: unknown
+    photo_zoom?: unknown
   }
+  delete rest.photo_fit
+  delete rest.photo_position_x
+  delete rest.photo_position_y
+  delete rest.photo_zoom
   return rest as T
 }
 

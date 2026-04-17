@@ -2,6 +2,7 @@
 
 import { Family, Member } from '@/types'
 import { formatMemberDisplayLine } from '@/lib/member-display'
+import { getPhotoFitClass, getPhotoPresentationStyle } from '@/lib/photo-presentation'
 
 export interface DirectoryCellProps {
   family: Family & { members?: Member[] }
@@ -37,12 +38,13 @@ export function DirectoryCell({ family, placeholderUrl }: DirectoryCellProps) {
           <img
             src={family.photo_url}
             alt={`${family.name} photo`}
-            className={`absolute inset-0 h-full w-full ${
-              (family.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'
-            }`}
-            style={{
-              objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
-            }}
+            className={`absolute inset-0 h-full w-full ${getPhotoFitClass(family.photo_fit)}`}
+            style={getPhotoPresentationStyle({
+              fit: family.photo_fit,
+              positionX: family.photo_position_x,
+              positionY: family.photo_position_y,
+              zoom: family.photo_zoom,
+            })}
           />
         ) : placeholderUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */

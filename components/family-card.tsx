@@ -1,8 +1,15 @@
-import Link from 'next/link'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { MapPin } from 'lucide-react'
 import { Family, Member } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatMemberDisplayLine } from '@/lib/member-display'
+import { updateFamily } from '@/lib/actions'
+import { PhotoFrameEditor } from '@/components/photo-frame-editor'
+import { getPhotoFitClass, getPhotoPresentationStyle } from '@/lib/photo-presentation'
+import { toast } from 'sonner'
 
 interface FamilyCardProps {
   family: Family & { members?: Member[] }
@@ -10,28 +17,87 @@ interface FamilyCardProps {
 }
 
 export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
-  const location = [family.city, family.state].filter(Boolean).join(', ')
+  const router = useRouter()
+  const [currentFamily, setCurrentFamily] = useState(family)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const location = [currentFamily.city, currentFamily.state].filter(Boolean).join(', ')
   const memberNames = formatMemberDisplayLine(
-    family.members,
-    family.different_last_names ?? false
+    currentFamily.members,
+    currentFamily.different_last_names ?? false
   )
 
+  useEffect(() => {
+    setCurrentFamily(family)
+  }, [family])
+
+  async function handleSavePhotoFrame(values: {
+    fit: Family['photo_fit']
+    positionX: number
+    positionY: number
+    zoom: number
+  }) {
+    try {
+      const updated = await updateFamily(currentFamily.id, {
+        photo_fit: values.fit,
+        photo_position_x: values.positionX,
+        photo_position_y: values.positionY,
+        photo_zoom: values.zoom,
+      })
+      setCurrentFamily((prev) => ({ ...prev, ...updated }))
+      toast.success('Family photo updated')
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update family photo')
+      throw error
+    }
+  }
+
+  function handleOpenDetails() {
+    router.push(`/families/${currentFamily.id}`)
+  }
+
   return (
-    <Link href={`/families/${family.id}`}>
-      <Card className="group h-full overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5">
+    <>
+      <Card
+        className="group h-full cursor-pointer overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
+        role="link"
+        tabIndex={0}
+        onClick={handleOpenDetails}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            handleOpenDetails()
+          }
+        }}
+      >
         <div className="flex items-center justify-center bg-gradient-to-br from-[#F4F4EC] to-slate-100 p-3">
-          {family.photo_url ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={family.photo_url}
-              alt={`${family.name} family`}
-              className={`max-h-44 w-full rounded ${
-                (family.photo_fit ?? 'cover') === 'contain' ? 'object-contain' : 'object-cover'
-              }`}
-              style={{
-                objectPosition: `${family.photo_position_x ?? 50}% ${family.photo_position_y ?? 50}%`,
+          {currentFamily.photo_url ? (
+            <button
+              type="button"
+              className="relative block w-full"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setEditorOpen(true)
               }}
-            />
+              aria-label={`Adjust ${currentFamily.name} family photo`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={currentFamily.photo_url}
+                alt={`${currentFamily.name} family`}
+                className={`max-h-44 w-full rounded ${getPhotoFitClass(currentFamily.photo_fit)}`}
+                style={getPhotoPresentationStyle({
+                  fit: currentFamily.photo_fit,
+                  positionX: currentFamily.photo_position_x,
+                  positionY: currentFamily.photo_position_y,
+                  zoom: currentFamily.photo_zoom,
+                })}
+              />
+              <span className="absolute inset-x-3 bottom-3 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+                Adjust photo
+              </span>
+            </button>
           ) : placeholderUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -43,7 +109,7 @@ export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
             <div className="flex h-28 items-center justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
                 <span className="text-2xl font-bold text-[#7A9C49]">
-                  {family.name.charAt(0).toUpperCase()}
+                  {currentFamily.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
@@ -52,7 +118,7 @@ export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
         <CardContent className="p-3">
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-slate-800 transition-colors group-hover:text-[#7A9C49]">
-              {family.name}
+              {currentFamily.name}
             </h3>
             <p className="mt-0.5 line-clamp-2 min-h-9 text-sm text-slate-500">
               {memberNames || 'No members'}
@@ -64,11 +130,26 @@ export function FamilyCard({ family, placeholderUrl }: FamilyCardProps) {
               {location}
             </p>
           )}
-          {family.mailing_address && (
-            <p className="mt-0.5 text-xs text-slate-400">{family.mailing_address}</p>
+          {currentFamily.mailing_address && (
+            <p className="mt-0.5 text-xs text-slate-400">{currentFamily.mailing_address}</p>
           )}
         </CardContent>
       </Card>
-    </Link>
+
+      {currentFamily.photo_url ? (
+        <PhotoFrameEditor
+          open={editorOpen}
+          photoUrl={currentFamily.photo_url}
+          fit={currentFamily.photo_fit}
+          positionX={currentFamily.photo_position_x}
+          positionY={currentFamily.photo_position_y}
+          zoom={currentFamily.photo_zoom}
+          aspect={1}
+          title={`Adjust ${currentFamily.name} family photo`}
+          onOpenChange={setEditorOpen}
+          onSave={handleSavePhotoFrame}
+        />
+      ) : null}
+    </>
   )
 }
