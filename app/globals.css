@@ -413,9 +413,9 @@
 }
 
 .builder-sidebar {
-  flex: 0 0 220px;
-  width: 220px;
-  min-width: 220px;
+  flex: 0 0 260px;
+  width: 260px;
+  min-width: 260px;
   border-right: 1px solid #e2e8f0;
   background: #f8fafc;
   padding: 0.75rem;
@@ -506,10 +506,10 @@
 }
 
 .builder-properties {
-  flex: 0 0 440px;
-  width: 440px;
-  min-width: 360px;
-  max-width: 520px;
+  flex: 0 0 520px;
+  width: 520px;
+  min-width: 440px;
+  max-width: 600px;
   border-left: 1px solid #e2e8f0;
   background: #ffffff;
   padding: 1rem;
