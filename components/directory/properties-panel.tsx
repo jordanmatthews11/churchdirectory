@@ -11,6 +11,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { BackPageEditor } from '@/components/directory/back-page-editor'
+import { CollapsibleSection } from '@/components/directory/collapsible-section'
+import {
+  DEFAULT_INTRO_ALIGN,
+  DEFAULT_INTRO_FONT_SIZE,
+  DEFAULT_INTRO_LINE_HEIGHT,
+  DEFAULT_INTRO_PARAGRAPH_SPACING,
+  DEFAULT_TITLE_IMAGE_GAP,
+  DEFAULT_TITLE_IMAGE_OFFSET_Y,
+  DEFAULT_TITLE_IMAGE_SCALE,
+  DEFAULT_TITLE_LOGO_GAP,
+  patchTitlePageLayout,
+  resolveTitlePageLayout,
+  type TitlePageLayoutPatch,
+} from '@/lib/title-page-layout'
 
 const UPLOAD_MAX_BYTES = 4 * 1024 * 1024 // 4 MB (Vercel body limit)
 
@@ -54,6 +68,7 @@ interface PropertiesPanelProps {
   settings: DirectorySettings
   onSettingsSaved: (values: Partial<DirectorySettings>) => Promise<void>
   onPreviewChange?: (values: Partial<DirectorySettings>) => void
+  onOpenTitlePhotoEditor?: () => void
 }
 
 export function PropertiesPanel({
@@ -61,7 +76,9 @@ export function PropertiesPanel({
   settings,
   onSettingsSaved,
   onPreviewChange,
+  onOpenTitlePhotoEditor,
 }: PropertiesPanelProps) {
+  const resolvedLayout = resolveTitlePageLayout(settings.title_page_layout)
   const [form, setForm] = useState({
     intro_text: settings.intro_text,
     date_label: settings.date_label,
@@ -71,11 +88,13 @@ export function PropertiesPanel({
     logo_crop_bottom: settings.logo_crop_bottom ?? 0,
     logo_crop_left: settings.logo_crop_left ?? 0,
     logo_crop_right: settings.logo_crop_right ?? 0,
+    title_page_layout: resolvedLayout,
   })
   const [saving, setSaving] = useState(false)
   const [uploadingKey, setUploadingKey] = useState<string | null>(null)
 
   useEffect(() => {
+    const nextLayout = resolveTitlePageLayout(settings.title_page_layout)
     setForm({
       intro_text: settings.intro_text,
       date_label: settings.date_label,
@@ -85,6 +104,7 @@ export function PropertiesPanel({
       logo_crop_bottom: settings.logo_crop_bottom ?? 0,
       logo_crop_left: settings.logo_crop_left ?? 0,
       logo_crop_right: settings.logo_crop_right ?? 0,
+      title_page_layout: nextLayout,
     })
   }, [settings])
 
@@ -150,6 +170,20 @@ export function PropertiesPanel({
     }
   }
 
+  function updateLayout(patch: TitlePageLayoutPatch) {
+    const nextLayout = patchTitlePageLayout(form.title_page_layout, patch)
+    setForm((prev) => ({
+      ...prev,
+      title_page_layout: resolveTitlePageLayout(nextLayout),
+    }))
+    onPreviewChange?.({ title_page_layout: nextLayout })
+  }
+
+  function updateTopLevel<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    onPreviewChange?.({ [key]: value } as Partial<DirectorySettings>)
+  }
+
   return (
     <aside className="builder-properties">
       {pageType === 'cover' && (
@@ -195,231 +229,498 @@ export function PropertiesPanel({
       {pageType === 'title' && (
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-slate-900">Opening Page</h3>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Header Image</label>
-            <p className="text-[11px] text-slate-500">
-              Recommended size: approx. 470 x 300 px
-            </p>
-            <div className="flex gap-2">
-              <label className="inline-flex">
+          <CollapsibleSection
+            title="Header Image"
+            description="Upload or replace the logo/header art at the top of the Opening page."
+            defaultOpen
+          >
+            <div className="space-y-2">
+              <p className="text-[11px] text-slate-500">Recommended size: approx. 470 x 300 px</p>
+              <div className="flex gap-2">
+                <label className="inline-flex">
+                  <input
+                    className="hidden"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={(e) => void handleImageUpload(e.target.files?.[0], 'logo', 'logo_url')}
+                  />
+                  <Button asChild variant="outline" size="sm" disabled={uploadingKey === 'logo_url'}>
+                    <span><ImagePlus className="mr-2 h-4 w-4" />{uploadingKey === 'logo_url' ? 'Uploading...' : 'Upload'}</span>
+                  </Button>
+                </label>
+                {settings.logo_url && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleRemove(settings.logo_url, 'logo_url')}
+                    disabled={uploadingKey === 'logo_url'}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Logo Framing"
+            description="Resize or move the top logo image without changing the rest of the layout."
+            defaultOpen
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Logo Size</label>
+                  <span className="text-xs text-slate-500">{form.logo_scale}%</span>
+                </div>
                 <input
-                  className="hidden"
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  onChange={(e) => void handleImageUpload(e.target.files?.[0], 'logo', 'logo_url')}
+                  type="range"
+                  min={50}
+                  max={150}
+                  step={5}
+                  value={form.logo_scale}
+                  onChange={(e) => updateTopLevel('logo_scale', Number(e.target.value))}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                 />
-                <Button asChild variant="outline" size="sm" disabled={uploadingKey === 'logo_url'}>
-                  <span><ImagePlus className="mr-2 h-4 w-4" />{uploadingKey === 'logo_url' ? 'Uploading...' : 'Upload'}</span>
-                </Button>
-              </label>
-              {settings.logo_url && (
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Logo Position</label>
+                  <span className="text-xs text-slate-500">{form.logo_offset_y}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-50}
+                  max={50}
+                  step={5}
+                  value={form.logo_offset_y}
+                  onChange={(e) => updateTopLevel('logo_offset_y', Number(e.target.value))}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Logo Crop"
+            description="Collapse this section when you do not need to trim the logo edges."
+          >
+            <div className="space-y-4">
+              {([
+                ['logo_crop_top', 'Crop Top'],
+                ['logo_crop_bottom', 'Crop Bottom'],
+                ['logo_crop_left', 'Crop Left'],
+                ['logo_crop_right', 'Crop Right'],
+              ] as const).map(([key, label]) => (
+                <div key={key} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">{label}</label>
+                    <span className="text-xs text-slate-500">{form[key]}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={40}
+                    step={5}
+                    value={form[key]}
+                    onChange={(e) => updateTopLevel(key, Number(e.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Intro Text"
+            description="Edit the text and adjust typography, spacing, and color without changing current defaults."
+            defaultOpen
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600">Intro Text</label>
+                <Textarea
+                  value={form.intro_text}
+                  rows={10}
+                  onChange={(e) => updateTopLevel('intro_text', e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-600">Font Size</label>
+                  <input
+                    type="range"
+                    min={10}
+                    max={24}
+                    step={1}
+                    value={form.title_page_layout.intro.font_size}
+                    onChange={(e) =>
+                      updateLayout({ intro: { font_size: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.font_size}px</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-600">Line Height</label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={2}
+                    step={0.05}
+                    value={form.title_page_layout.intro.line_height}
+                    onChange={(e) =>
+                      updateLayout({ intro: { line_height: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.line_height.toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600">Alignment</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['left', 'center', 'right', 'justify'] as const).map((align) => (
+                    <Button
+                      key={align}
+                      type="button"
+                      variant={form.title_page_layout.intro.align === align ? 'default' : 'outline'}
+                      className={form.title_page_layout.intro.align === align ? 'bg-[#7A9C49] hover:bg-[#6B8A3D]' : ''}
+                      onClick={() => updateLayout({ intro: { align } })}
+                    >
+                      {align}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleRemove(settings.logo_url, 'logo_url')}
-                  disabled={uploadingKey === 'logo_url'}
+                  variant={form.title_page_layout.intro.bold ? 'default' : 'outline'}
+                  className={form.title_page_layout.intro.bold ? 'bg-[#7A9C49] hover:bg-[#6B8A3D]' : ''}
+                  onClick={() =>
+                    updateLayout({ intro: { bold: !form.title_page_layout.intro.bold } })
+                  }
                 >
-                  <Trash2 className="mr-2 h-4 w-4" /> Remove
+                  Bold
                 </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Logo Size</label>
-              <span className="text-xs text-slate-500">{form.logo_scale}%</span>
-            </div>
-            <input
-              type="range"
-              min={50}
-              max={150}
-              step={5}
-              value={form.logo_scale}
-              onChange={(e) => {
-                const nextLogoScale = Number(e.target.value)
-                setForm((p) => ({
-                  ...p,
-                  logo_scale: nextLogoScale,
-                }))
-                onPreviewChange?.({ logo_scale: nextLogoScale })
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-            />
-            <p className="text-[11px] text-slate-500">
-              Make the header logo smaller or larger on the Opening page.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Logo Position</label>
-              <span className="text-xs text-slate-500">{form.logo_offset_y}px</span>
-            </div>
-            <input
-              type="range"
-              min={-50}
-              max={50}
-              step={5}
-              value={form.logo_offset_y}
-              onChange={(e) => {
-                const nextLogoOffsetY = Number(e.target.value)
-                setForm((p) => ({
-                  ...p,
-                  logo_offset_y: nextLogoOffsetY,
-                }))
-                onPreviewChange?.({ logo_offset_y: nextLogoOffsetY })
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-            />
-            <p className="text-[11px] text-slate-500">
-              Move the header logo up or down without changing the placement of the rest of the page.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Crop Top</label>
-              <span className="text-xs text-slate-500">{form.logo_crop_top}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={40}
-              step={5}
-              value={form.logo_crop_top}
-              onChange={(e) => {
-                const nextLogoCropTop = Number(e.target.value)
-                setForm((p) => ({
-                  ...p,
-                  logo_crop_top: nextLogoCropTop,
-                }))
-                onPreviewChange?.({ logo_crop_top: nextLogoCropTop })
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-            />
-            <p className="text-[11px] text-slate-500">
-              Trim the top edge of the logo image.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Crop Bottom</label>
-              <span className="text-xs text-slate-500">{form.logo_crop_bottom}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={40}
-              step={5}
-              value={form.logo_crop_bottom}
-              onChange={(e) => {
-                const nextLogoCropBottom = Number(e.target.value)
-                setForm((p) => ({
-                  ...p,
-                  logo_crop_bottom: nextLogoCropBottom,
-                }))
-                onPreviewChange?.({ logo_crop_bottom: nextLogoCropBottom })
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-            />
-            <p className="text-[11px] text-slate-500">
-              Trim the bottom edge of the logo image.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Crop Left</label>
-              <span className="text-xs text-slate-500">{form.logo_crop_left}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={40}
-              step={5}
-              value={form.logo_crop_left}
-              onChange={(e) => {
-                const nextLogoCropLeft = Number(e.target.value)
-                setForm((p) => ({
-                  ...p,
-                  logo_crop_left: nextLogoCropLeft,
-                }))
-                onPreviewChange?.({ logo_crop_left: nextLogoCropLeft })
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-            />
-            <p className="text-[11px] text-slate-500">
-              Trim the left edge of the logo image.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-600">Crop Right</label>
-              <span className="text-xs text-slate-500">{form.logo_crop_right}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={40}
-              step={5}
-              value={form.logo_crop_right}
-              onChange={(e) => {
-                const nextLogoCropRight = Number(e.target.value)
-                setForm((p) => ({
-                  ...p,
-                  logo_crop_right: nextLogoCropRight,
-                }))
-                onPreviewChange?.({ logo_crop_right: nextLogoCropRight })
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-            />
-            <p className="text-[11px] text-slate-500">
-              Trim the right edge of the logo image.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Date Label</label>
-            <Input value={form.date_label} onChange={(e) => setForm((p) => ({ ...p, date_label: e.target.value }))} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Intro Text</label>
-            <Textarea value={form.intro_text} rows={10} onChange={(e) => setForm((p) => ({ ...p, intro_text: e.target.value }))} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Title Image</label>
-            <p className="text-[11px] text-slate-500">
-              Recommended size: approx. 470 x 340 px (~1.38:1 ratio)
-            </p>
-            <div className="flex gap-2">
-              <label className="inline-flex">
-                <input
-                  className="hidden"
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  onChange={(e) => void handleImageUpload(e.target.files?.[0], 'title', 'title_image_url')}
-                />
-                <Button asChild variant="outline" size="sm" disabled={uploadingKey === 'title_image_url'}>
-                  <span><ImagePlus className="mr-2 h-4 w-4" />{uploadingKey === 'title_image_url' ? 'Uploading...' : 'Upload'}</span>
-                </Button>
-              </label>
-              {settings.title_image_url && (
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleRemove(settings.title_image_url, 'title_image_url')}
-                  disabled={uploadingKey === 'title_image_url'}
+                  variant={form.title_page_layout.intro.italic ? 'default' : 'outline'}
+                  className={form.title_page_layout.intro.italic ? 'bg-[#7A9C49] hover:bg-[#6B8A3D]' : ''}
+                  onClick={() =>
+                    updateLayout({ intro: { italic: !form.title_page_layout.intro.italic } })
+                  }
                 >
-                  <Trash2 className="mr-2 h-4 w-4" /> Remove
+                  Italic
                 </Button>
-              )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600">Text Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form.title_page_layout.intro.color || '#111827'}
+                    onChange={(e) => updateLayout({ intro: { color: e.target.value } })}
+                    className="h-9 w-12 rounded border border-slate-200 bg-white p-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateLayout({ intro: { color: '' } })}
+                  >
+                    Reset color
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-600">Top Margin</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={80}
+                    step={2}
+                    value={form.title_page_layout.intro.margin_top}
+                    onChange={(e) =>
+                      updateLayout({ intro: { margin_top: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={80}
+                    step={2}
+                    value={form.title_page_layout.intro.margin_bottom}
+                    onChange={(e) =>
+                      updateLayout({ intro: { margin_bottom: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_bottom}px</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={form.title_page_layout.intro.paragraph_spacing}
+                  onChange={(e) =>
+                    updateLayout({ intro: { paragraph_spacing: Number(e.target.value) } })
+                  }
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                />
+                <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.paragraph_spacing}px</p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  updateLayout({
+                    intro: {
+                      font_size: DEFAULT_INTRO_FONT_SIZE,
+                      line_height: DEFAULT_INTRO_LINE_HEIGHT,
+                      align: DEFAULT_INTRO_ALIGN,
+                      color: '',
+                      bold: false,
+                      italic: false,
+                      margin_top: DEFAULT_TITLE_LOGO_GAP,
+                      margin_bottom: 0,
+                      paragraph_spacing: DEFAULT_INTRO_PARAGRAPH_SPACING,
+                    },
+                  })
+                }
+              >
+                Reset intro formatting
+              </Button>
             </div>
-          </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Title Image"
+            description="Upload the Opening page photo, adjust framing, or move/scale the whole image box."
+            defaultOpen
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-[11px] text-slate-500">
+                  Recommended size: approx. 470 x 340 px (~1.38:1 ratio)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex">
+                    <input
+                      className="hidden"
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      onChange={(e) => void handleImageUpload(e.target.files?.[0], 'title', 'title_image_url')}
+                    />
+                    <Button asChild variant="outline" size="sm" disabled={uploadingKey === 'title_image_url'}>
+                      <span><ImagePlus className="mr-2 h-4 w-4" />{uploadingKey === 'title_image_url' ? 'Uploading...' : 'Upload'}</span>
+                    </Button>
+                  </label>
+                  {settings.title_image_url ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onOpenTitlePhotoEditor}
+                      >
+                        Adjust photo from preview
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleRemove(settings.title_image_url, 'title_image_url')}
+                        disabled={uploadingKey === 'title_image_url'}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Remove
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-600">Box Scale</label>
+                  <input
+                    type="range"
+                    min={50}
+                    max={150}
+                    step={5}
+                    value={form.title_page_layout.title_image.scale}
+                    onChange={(e) =>
+                      updateLayout({ title_image: { scale: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                  <p className="text-[11px] text-slate-500">{form.title_page_layout.title_image.scale}%</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-600">Box Position</label>
+                  <input
+                    type="range"
+                    min={-120}
+                    max={120}
+                    step={2}
+                    value={form.title_page_layout.title_image.offset_y}
+                    onChange={(e) =>
+                      updateLayout({ title_image: { offset_y: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                  <p className="text-[11px] text-slate-500">{form.title_page_layout.title_image.offset_y}px</p>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  updateLayout({
+                    title_image: {
+                      scale: DEFAULT_TITLE_IMAGE_SCALE,
+                      offset_y: DEFAULT_TITLE_IMAGE_OFFSET_Y,
+                    },
+                  })
+                }
+              >
+                Reset image box
+              </Button>
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Date"
+            description="Control the publication line shown below the Opening page photo."
+            defaultOpen
+          >
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-600">Date Label</label>
+              <Input value={form.date_label} onChange={(e) => updateTopLevel('date_label', e.target.value)} />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Spacing"
+            description="Fine-tune the gaps between the logo, intro text, image, and date."
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600">Gap Below Logo</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={80}
+                  step={2}
+                  value={form.title_page_layout.spacing.below_logo}
+                  onChange={(e) =>
+                    updateLayout({ spacing: { below_logo: Number(e.target.value) } })
+                  }
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                />
+                <p className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_logo}px</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Gap Below Intro</label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      updateLayout({
+                        spacing: {
+                          below_intro:
+                            form.title_page_layout.spacing.below_intro === 'auto'
+                              ? DEFAULT_TITLE_LOGO_GAP
+                              : 'auto',
+                        },
+                      })
+                    }
+                  >
+                    {form.title_page_layout.spacing.below_intro === 'auto' ? 'Auto' : 'Manual'}
+                  </Button>
+                </div>
+                {form.title_page_layout.spacing.below_intro === 'auto' ? (
+                  <p className="text-[11px] text-slate-500">
+                    Auto keeps the image pinned to the bottom, which matches the current Opening page.
+                  </p>
+                ) : (
+                  <>
+                    <input
+                      type="range"
+                      min={0}
+                      max={120}
+                      step={2}
+                      value={form.title_page_layout.spacing.below_intro}
+                      onChange={(e) =>
+                        updateLayout({ spacing: { below_intro: Number(e.target.value) } })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                    />
+                    <p className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_intro}px</p>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600">Gap Below Image</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={80}
+                  step={2}
+                  value={form.title_page_layout.spacing.below_image}
+                  onChange={(e) =>
+                    updateLayout({ spacing: { below_image: Number(e.target.value) } })
+                  }
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                />
+                <p className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_image}px</p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  updateLayout({
+                    spacing: {
+                      below_logo: DEFAULT_TITLE_LOGO_GAP,
+                      below_intro: 'auto',
+                      below_image: DEFAULT_TITLE_IMAGE_GAP,
+                    },
+                  })
+                }
+              >
+                Reset spacing
+              </Button>
+            </div>
+          </CollapsibleSection>
+
           <Button type="button" className="w-full bg-[#7A9C49] hover:bg-[#6B8A3D]" onClick={() => void handleSave()} disabled={saving}>
             <Save className="mr-2 h-4 w-4" /> {saving ? 'Saving...' : 'Save Opening Settings'}
           </Button>

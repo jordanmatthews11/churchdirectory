@@ -1,5 +1,34 @@
 export type PhotoFitMode = 'cover' | 'contain'
 
+export type TextAlignMode = 'left' | 'center' | 'right' | 'justify'
+
+export interface TitlePageLayout {
+  intro?: {
+    font_size?: number
+    line_height?: number
+    align?: TextAlignMode
+    color?: string
+    bold?: boolean
+    italic?: boolean
+    margin_top?: number
+    margin_bottom?: number
+    paragraph_spacing?: number
+  }
+  title_image?: {
+    fit?: PhotoFitMode
+    position_x?: number
+    position_y?: number
+    zoom?: number
+    scale?: number
+    offset_y?: number
+  }
+  spacing?: {
+    below_logo?: number
+    below_intro?: 'auto' | number
+    below_image?: number
+  }
+}
+
 export interface Family {
   id: string
   name: string
@@ -105,6 +134,7 @@ export interface DirectorySettings {
   intro_text: string
   date_label: string
   back_page_html: string | null
+  title_page_layout?: TitlePageLayout | null
   /** Elders, deacons, deaconesses, staff list for the Leadership PDF page (JSONB). */
   leadership_data?: LeadershipData | null
   updated_at: string

@@ -242,6 +242,7 @@ export async function updateDirectorySettings(
       | 'cover_year'
       | 'intro_text'
       | 'date_label'
+      | 'title_page_layout'
       | 'back_page_html'
       | 'leadership_data'
     >

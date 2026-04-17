@@ -215,6 +215,7 @@ export default function DirectoryPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [exporting, setExporting] = useState<'web' | 'book' | null>(null)
   const [selectedPageIndex, setSelectedPageIndex] = useState(0)
+  const [titlePhotoEditorNonce, setTitlePhotoEditorNonce] = useState(0)
   const exportCanvasRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -511,7 +512,13 @@ export default function DirectoryPage() {
         <div className="builder-canvas-stage">
           <div className="builder-canvas-frame">
             {selectedPage.kind === 'cover' && <CoverPage settings={settings} />}
-            {selectedPage.kind === 'title' && <TitlePage settings={settings} />}
+            {selectedPage.kind === 'title' && (
+              <TitlePage
+                settings={settings}
+                photoEditorNonce={titlePhotoEditorNonce}
+                onPhotoEditorHandled={() => setTitlePhotoEditorNonce(0)}
+              />
+            )}
             {selectedPage.kind === 'grid' && (
               <DirectoryGrid
                 families={families}
@@ -530,6 +537,7 @@ export default function DirectoryPage() {
         settings={settings}
         onSettingsSaved={handleSettingsSaved}
         onPreviewChange={handleSettingsPreview}
+        onOpenTitlePhotoEditor={() => setTitlePhotoEditorNonce((value) => value + 1)}
       />
 
       <div ref={exportCanvasRef} className="directory-export-hidden" aria-hidden="true">
