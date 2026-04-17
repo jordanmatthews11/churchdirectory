@@ -24,7 +24,7 @@ export interface TitlePageLayout {
   }
   spacing?: {
     below_logo?: number
-    below_intro?: 'auto' | number
+    below_intro?: number
     below_image?: number
   }
 }

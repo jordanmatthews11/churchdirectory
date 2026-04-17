@@ -349,7 +349,10 @@ export function PropertiesPanel({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-600">Font Size</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Font Size</label>
+                    <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.font_size}px</span>
+                  </div>
                   <input
                     type="range"
                     min={10}
@@ -361,10 +364,14 @@ export function PropertiesPanel({
                     }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                   />
-                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.font_size}px</p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-600">Line Height</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Line Height</label>
+                    <span className="text-[11px] text-slate-500">
+                      {form.title_page_layout.intro.line_height.toFixed(2)}
+                    </span>
+                  </div>
                   <input
                     type="range"
                     min={1}
@@ -376,13 +383,12 @@ export function PropertiesPanel({
                     }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                   />
-                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.line_height.toFixed(2)}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-medium text-slate-600">Alignment</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {(['left', 'center', 'right', 'justify'] as const).map((align) => (
                     <Button
                       key={align}
@@ -442,7 +448,10 @@ export function PropertiesPanel({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-600">Top Margin</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Top Margin</label>
+                    <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</span>
+                  </div>
                   <input
                     type="range"
                     min={0}
@@ -454,10 +463,14 @@ export function PropertiesPanel({
                     }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                   />
-                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
+                    <span className="text-[11px] text-slate-500">
+                      {form.title_page_layout.intro.margin_bottom}px
+                    </span>
+                  </div>
                   <input
                     type="range"
                     min={0}
@@ -469,12 +482,16 @@ export function PropertiesPanel({
                     }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                   />
-                  <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_bottom}px</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
+                  <span className="text-[11px] text-slate-500">
+                    {form.title_page_layout.intro.paragraph_spacing}px
+                  </span>
+                </div>
                 <input
                   type="range"
                   min={0}
@@ -486,7 +503,6 @@ export function PropertiesPanel({
                   }
                   className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                 />
-                <p className="text-[11px] text-slate-500">{form.title_page_layout.intro.paragraph_spacing}px</p>
               </div>
 
               <Button
@@ -562,7 +578,10 @@ export function PropertiesPanel({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-600">Box Scale</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Box Scale</label>
+                    <span className="text-[11px] text-slate-500">{form.title_page_layout.title_image.scale}%</span>
+                  </div>
                   <input
                     type="range"
                     min={50}
@@ -574,14 +593,18 @@ export function PropertiesPanel({
                     }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                   />
-                  <p className="text-[11px] text-slate-500">{form.title_page_layout.title_image.scale}%</p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-600">Box Position</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Box Position</label>
+                    <span className="text-[11px] text-slate-500">
+                      {form.title_page_layout.title_image.offset_y}px
+                    </span>
+                  </div>
                   <input
                     type="range"
-                    min={-120}
-                    max={120}
+                    min={-240}
+                    max={240}
                     step={2}
                     value={form.title_page_layout.title_image.offset_y}
                     onChange={(e) =>
@@ -589,7 +612,6 @@ export function PropertiesPanel({
                     }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                   />
-                  <p className="text-[11px] text-slate-500">{form.title_page_layout.title_image.offset_y}px</p>
                 </div>
               </div>
 
@@ -628,7 +650,10 @@ export function PropertiesPanel({
           >
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-600">Gap Below Logo</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Gap Below Logo</label>
+                  <span className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_logo}px</span>
+                </div>
                 <input
                   type="range"
                   min={0}
@@ -640,54 +665,34 @@ export function PropertiesPanel({
                   }
                   className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                 />
-                <p className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_logo}px</p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-slate-600">Gap Below Intro</label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      updateLayout({
-                        spacing: {
-                          below_intro:
-                            form.title_page_layout.spacing.below_intro === 'auto'
-                              ? DEFAULT_TITLE_LOGO_GAP
-                              : 'auto',
-                        },
-                      })
-                    }
-                  >
-                    {form.title_page_layout.spacing.below_intro === 'auto' ? 'Auto' : 'Manual'}
-                  </Button>
+                  <label className="text-xs font-medium text-slate-600">Space Above Image</label>
+                  <span className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_intro}px</span>
                 </div>
-                {form.title_page_layout.spacing.below_intro === 'auto' ? (
-                  <p className="text-[11px] text-slate-500">
-                    Auto keeps the image pinned to the bottom, which matches the current Opening page.
-                  </p>
-                ) : (
-                  <>
-                    <input
-                      type="range"
-                      min={0}
-                      max={120}
-                      step={2}
-                      value={form.title_page_layout.spacing.below_intro}
-                      onChange={(e) =>
-                        updateLayout({ spacing: { below_intro: Number(e.target.value) } })
-                      }
-                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                    />
-                    <p className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_intro}px</p>
-                  </>
-                )}
+                <p className="text-[11px] text-slate-500">
+                  Slide right to pull the image up toward the intro text.
+                </p>
+                <input
+                  type="range"
+                  min={0}
+                  max={500}
+                  step={2}
+                  value={form.title_page_layout.spacing.below_intro}
+                  onChange={(e) =>
+                    updateLayout({ spacing: { below_intro: Number(e.target.value) } })
+                  }
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-600">Gap Below Image</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">Gap Below Image</label>
+                  <span className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_image}px</span>
+                </div>
                 <input
                   type="range"
                   min={0}
@@ -699,7 +704,6 @@ export function PropertiesPanel({
                   }
                   className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
                 />
-                <p className="text-[11px] text-slate-500">{form.title_page_layout.spacing.below_image}px</p>
               </div>
 
               <Button
@@ -710,7 +714,7 @@ export function PropertiesPanel({
                   updateLayout({
                     spacing: {
                       below_logo: DEFAULT_TITLE_LOGO_GAP,
-                      below_intro: 'auto',
+                      below_intro: 0,
                       below_image: DEFAULT_TITLE_IMAGE_GAP,
                     },
                   })

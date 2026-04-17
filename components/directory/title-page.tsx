@@ -74,113 +74,111 @@ export function TitlePage({
     <>
       <section className="directory-page directory-title-page relative overflow-hidden bg-white break-after-page">
         <div className="relative z-10 flex h-full flex-col px-16 pt-8 pb-10">
-        {/* Header upload area (logo + "Church Directory" text replacement) */}
-        <div className="mx-auto h-[300px] w-[470px] overflow-visible">
-          <div className="relative h-full w-full" style={{ transform: `translateY(${logoOffsetY}px)` }}>
-            <div
-              className="relative h-full w-full overflow-hidden rounded-xl"
-              style={{
-                transform: `scale(${logoScale / 100})`,
-                transformOrigin: 'center top',
-              }}
-            >
-              {settings.logo_url ? (
-                <Image
-                  src={settings.logo_url}
-                  alt="Opening header"
-                  fill
-                  className="object-cover"
-                  style={{
-                    clipPath: `inset(${logoCropTop}% ${logoCropRight}% ${logoCropBottom}% ${logoCropLeft}%)`,
-                  }}
-                  sizes="470px"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-center">
-                  <div>
-                    <div className="text-sm font-semibold text-slate-600">Upload header image</div>
-                    <div className="mt-1 text-xs text-slate-500">Use the right panel</div>
+          {/* Header upload area (logo + "Church Directory" text replacement) */}
+          <div className="mx-auto h-[300px] w-[470px] overflow-visible">
+            <div className="relative h-full w-full" style={{ transform: `translateY(${logoOffsetY}px)` }}>
+              <div
+                className="relative h-full w-full overflow-hidden rounded-xl"
+                style={{
+                  transform: `scale(${logoScale / 100})`,
+                  transformOrigin: 'center top',
+                }}
+              >
+                {settings.logo_url ? (
+                  <Image
+                    src={settings.logo_url}
+                    alt="Opening header"
+                    fill
+                    className="object-cover"
+                    style={{
+                      clipPath: `inset(${logoCropTop}% ${logoCropRight}% ${logoCropBottom}% ${logoCropLeft}%)`,
+                    }}
+                    sizes="470px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-center">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-600">Upload header image</div>
+                      <div className="mt-1 text-xs text-slate-500">Use the right panel</div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Intro text should appear above the image, like the Canva-style layout request. */}
-        <div
-          style={{
-            marginTop: layout.spacing.below_logo,
-            fontSize: layout.intro.font_size,
-            lineHeight: String(layout.intro.line_height),
-            textAlign: layout.intro.align,
-            color: layout.intro.color || undefined,
-            fontWeight: layout.intro.bold ? 700 : undefined,
-            fontStyle: layout.intro.italic ? 'italic' : undefined,
-          }}
-        >
-          {paragraphs.map((p, idx) => (
-            <p
-              key={idx}
-              style={{
-                marginTop: idx === 0 ? layout.intro.margin_top : 0,
-                marginBottom: idx === paragraphs.length - 1 ? 0 : layout.intro.paragraph_spacing,
-              }}
-            >
-              {p}
-            </p>
-          ))}
-        </div>
-
-        {/* Keep the title image at the bottom; constrain to ~470x340px */}
-        <div
-          className="flex items-end justify-center"
-          style={{
-            marginTop: layout.spacing.below_intro === 'auto' ? 'auto' : layout.spacing.below_intro,
-          }}
-        >
+          {/* Intro text should appear above the image, like the Canva-style layout request. */}
           <div
-            className="relative"
             style={{
-              transform: `translateY(${layout.title_image.offset_y}px) scale(${layout.title_image.scale / 100})`,
-              transformOrigin: 'center bottom',
+              marginTop: layout.spacing.below_logo,
+              marginBottom: layout.intro.margin_bottom,
+              fontSize: layout.intro.font_size,
+              lineHeight: String(layout.intro.line_height),
+              textAlign: layout.intro.align,
+              color: layout.intro.color || undefined,
+              fontWeight: layout.intro.bold ? 700 : undefined,
+              fontStyle: layout.intro.italic ? 'italic' : undefined,
             }}
           >
-            <div className="group relative h-[340px] w-[470px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-            {settings.title_image_url ? (
-              <button
-                type="button"
-                className="absolute inset-0 h-full w-full"
-                onClick={() => setManualEditorOpen(true)}
-                aria-label="Adjust opening page photo"
+            {paragraphs.map((p, idx) => (
+              <p
+                key={idx}
+                style={{
+                  marginTop: idx === 0 ? layout.intro.margin_top : 0,
+                  marginBottom: idx === paragraphs.length - 1 ? 0 : layout.intro.paragraph_spacing,
+                }}
               >
-                <Image
-                  src={settings.title_image_url}
-                  alt="Title"
-                  fill
-                  className={getPhotoFitClass(layout.title_image.fit)}
-                  style={getPhotoPresentationStyle({
-                    fit: layout.title_image.fit,
-                    positionX: layout.title_image.position_x,
-                    positionY: layout.title_image.position_y,
-                    zoom: layout.title_image.zoom,
-                  })}
-                  sizes="470px"
-                />
-                <span className="absolute inset-x-4 bottom-4 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
-                  Adjust photo
-                </span>
-              </button>
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <div className="text-center">
-                  <div className="text-sm font-medium text-slate-600">No title image selected</div>
-                </div>
+                {p}
+              </p>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1" />
+
+          {/* Keep the title image at the bottom; additional spacing lifts it toward the intro. */}
+          <div className="flex justify-center" style={{ marginTop: layout.spacing.below_intro }}>
+            <div
+              className="relative"
+              style={{
+                transform: `translateY(${layout.title_image.offset_y}px) scale(${layout.title_image.scale / 100})`,
+                transformOrigin: 'center bottom',
+              }}
+            >
+              <div className="group relative h-[340px] w-[470px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                {settings.title_image_url ? (
+                  <button
+                    type="button"
+                    className="absolute inset-0 h-full w-full"
+                    onClick={() => setManualEditorOpen(true)}
+                    aria-label="Adjust opening page photo"
+                  >
+                    <Image
+                      src={settings.title_image_url}
+                      alt="Title"
+                      fill
+                      className={getPhotoFitClass(layout.title_image.fit)}
+                      style={getPhotoPresentationStyle({
+                        fit: layout.title_image.fit,
+                        positionX: layout.title_image.position_x,
+                        positionY: layout.title_image.position_y,
+                        zoom: layout.title_image.zoom,
+                      })}
+                      sizes="470px"
+                    />
+                    <span className="absolute inset-x-4 bottom-4 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+                      Adjust photo
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-slate-600">No title image selected</div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
             </div>
           </div>
-        </div>
 
           <div
             className="text-center text-sm font-semibold text-slate-800"

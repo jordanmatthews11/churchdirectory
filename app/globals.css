@@ -492,10 +492,12 @@
 }
 
 .builder-properties {
-  width: 320px;
+  width: 440px;
+  min-width: 360px;
+  max-width: 520px;
   border-left: 1px solid #e2e8f0;
   background: #ffffff;
-  padding: 0.75rem;
+  padding: 1rem;
   overflow-y: auto;
 }
 

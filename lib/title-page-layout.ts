@@ -15,7 +15,7 @@ export interface ResolvedTitlePageLayout {
   title_image: Required<NonNullable<TitlePageLayout['title_image']>>
   spacing: {
     below_logo: number
-    below_intro: 'auto' | number
+    below_intro: number
     below_image: number
   }
 }
@@ -29,6 +29,8 @@ export interface TitlePageLayoutPatch {
 export function resolveTitlePageLayout(
   layout: TitlePageLayout | null | undefined
 ): ResolvedTitlePageLayout {
+  const rawBelowIntro = layout?.spacing?.below_intro
+
   return {
     intro: {
       font_size: layout?.intro?.font_size ?? DEFAULT_INTRO_FONT_SIZE,
@@ -51,7 +53,7 @@ export function resolveTitlePageLayout(
     },
     spacing: {
       below_logo: layout?.spacing?.below_logo ?? DEFAULT_TITLE_LOGO_GAP,
-      below_intro: layout?.spacing?.below_intro ?? 'auto',
+      below_intro: typeof rawBelowIntro === 'number' ? rawBelowIntro : 0,
       below_image: layout?.spacing?.below_image ?? DEFAULT_TITLE_IMAGE_GAP,
     },
   }
