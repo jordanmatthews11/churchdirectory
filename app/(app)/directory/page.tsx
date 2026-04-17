@@ -216,6 +216,8 @@ export default function DirectoryPage() {
   const [exporting, setExporting] = useState<'web' | 'book' | null>(null)
   const [selectedPageIndex, setSelectedPageIndex] = useState(0)
   const [titlePhotoEditorNonce, setTitlePhotoEditorNonce] = useState(0)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
   const exportCanvasRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -240,6 +242,28 @@ export default function DirectoryPage() {
       }
     }
     void load()
+  }, [])
+
+  useEffect(() => {
+    const stage = stageRef.current
+    const frame = frameRef.current
+    if (!stage || !frame) return
+
+    const PAGE_WIDTH_PX = 8.5 * 96
+    const STAGE_PADDING_PX = 24
+
+    const updatePreviewScale = () => {
+      const availableWidth = Math.max(stage.clientWidth - STAGE_PADDING_PX, 0)
+      const scale = Math.min(1, availableWidth / PAGE_WIDTH_PX)
+      frame.style.setProperty('--preview-scale', String(scale || 1))
+    }
+
+    updatePreviewScale()
+
+    const observer = new ResizeObserver(updatePreviewScale)
+    observer.observe(stage)
+
+    return () => observer.disconnect()
   }, [])
 
   async function handleSettingsSaved(values: Partial<DirectorySettings>) {
@@ -509,8 +533,8 @@ export default function DirectoryPage() {
           </div>
         </div>
 
-        <div className="builder-canvas-stage">
-          <div className="builder-canvas-frame">
+        <div ref={stageRef} className="builder-canvas-stage">
+          <div ref={frameRef} className="builder-canvas-frame">
             {selectedPage.kind === 'cover' && <CoverPage settings={settings} />}
             {selectedPage.kind === 'title' && (
               <TitlePage

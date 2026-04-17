@@ -412,7 +412,9 @@
 }
 
 .builder-sidebar {
+  flex: 0 0 220px;
   width: 220px;
+  min-width: 220px;
   border-right: 1px solid #e2e8f0;
   background: #f8fafc;
   padding: 0.75rem;
@@ -463,7 +465,8 @@
 }
 
 .builder-canvas {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: #e2e8f0;
@@ -481,17 +484,28 @@
 .builder-canvas-stage {
   flex: 1;
   overflow: auto;
-  padding: 1rem;
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 .builder-canvas-frame {
-  margin: 0 auto;
-  width: 8.5in;
+  --preview-scale: 1;
+  flex: 0 0 auto;
+  width: calc(8.5in * var(--preview-scale));
+  min-width: calc(8.5in * var(--preview-scale));
+  min-height: calc(11in * var(--preview-scale));
+}
+
+.builder-canvas-frame > .directory-page {
+  transform: scale(var(--preview-scale));
   transform-origin: top center;
   box-shadow: 0 20px 30px rgba(15, 23, 42, 0.18);
 }
 
 .builder-properties {
+  flex: 0 0 440px;
   width: 440px;
   min-width: 360px;
   max-width: 520px;
