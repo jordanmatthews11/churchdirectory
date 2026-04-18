@@ -43,6 +43,8 @@ export function TitlePage({
     marginTop: layout.spacing.below_logo,
     marginBottom: layout.intro.margin_bottom,
     paddingTop: layout.intro.margin_top,
+    paddingLeft: layout.intro.margin_left,
+    paddingRight: layout.intro.margin_right,
     '--title-intro-gap': `${layout.intro.paragraph_spacing}px`,
   } as CSSProperties & Record<'--title-intro-gap', string>
   const editorOpen =
@@ -126,6 +128,8 @@ export function TitlePage({
               style={{
                 marginTop: layout.spacing.below_logo,
                 marginBottom: layout.intro.margin_bottom,
+                paddingLeft: layout.intro.margin_left,
+                paddingRight: layout.intro.margin_right,
                 fontSize: layout.intro.font_size,
                 lineHeight: String(layout.intro.line_height),
                 textAlign: layout.intro.align,

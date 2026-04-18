@@ -334,11 +334,130 @@ export function PropertiesPanel({
             description="Use the same clean formatting toolbar as the Back page editor."
             defaultOpen
           >
-            <TitleIntroEditor
-              introText={form.intro_text}
-              introLayout={form.title_page_layout.intro}
-              onChange={updateLayout}
-            />
+            <div className="space-y-4">
+              <TitleIntroEditor
+                introText={form.intro_text}
+                introLayout={form.title_page_layout.intro}
+                onChange={updateLayout}
+              />
+
+              <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900">Text Box Margins</h4>
+                  <p className="text-xs text-slate-600">Adjust the intro text box spacing right below the editor.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-600">Top Margin</label>
+                      <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={80}
+                      step={2}
+                      value={form.title_page_layout.intro.margin_top}
+                      onChange={(e) =>
+                        updateLayout({ intro: { margin_top: Number(e.target.value) } })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
+                      <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_bottom}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={80}
+                      step={2}
+                      value={form.title_page_layout.intro.margin_bottom}
+                      onChange={(e) =>
+                        updateLayout({ intro: { margin_bottom: Number(e.target.value) } })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-600">Left Margin</label>
+                      <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_left}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={80}
+                      step={2}
+                      value={form.title_page_layout.intro.margin_left}
+                      onChange={(e) =>
+                        updateLayout({ intro: { margin_left: Number(e.target.value) } })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-600">Right Margin</label>
+                      <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_right}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={80}
+                      step={2}
+                      value={form.title_page_layout.intro.margin_right}
+                      onChange={(e) =>
+                        updateLayout({ intro: { margin_right: Number(e.target.value) } })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
+                    <span className="text-[11px] text-slate-500">
+                      {form.title_page_layout.intro.paragraph_spacing}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={32}
+                    step={1}
+                    value={form.title_page_layout.intro.paragraph_spacing}
+                    onChange={(e) =>
+                      updateLayout({ intro: { paragraph_spacing: Number(e.target.value) } })
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    updateLayout({
+                      intro: {
+                        margin_top: 0,
+                        margin_bottom: 0,
+                        margin_left: 0,
+                        margin_right: 0,
+                        paragraph_spacing: DEFAULT_INTRO_PARAGRAPH_SPACING,
+                      },
+                    })
+                  }
+                >
+                  Reset text box spacing
+                </Button>
+              </div>
+            </div>
           </CollapsibleSection>
 
           <CollapsibleSection
@@ -460,65 +579,6 @@ export function PropertiesPanel({
             description="Fine-tune the gaps between the logo, intro text, image, and date."
           >
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">Top Margin</label>
-                    <span className="text-[11px] text-slate-500">{form.title_page_layout.intro.margin_top}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={80}
-                    step={2}
-                    value={form.title_page_layout.intro.margin_top}
-                    onChange={(e) =>
-                      updateLayout({ intro: { margin_top: Number(e.target.value) } })
-                    }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">Bottom Margin</label>
-                    <span className="text-[11px] text-slate-500">
-                      {form.title_page_layout.intro.margin_bottom}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={80}
-                    step={2}
-                    value={form.title_page_layout.intro.margin_bottom}
-                    onChange={(e) =>
-                      updateLayout({ intro: { margin_bottom: Number(e.target.value) } })
-                    }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-slate-600">Paragraph Spacing</label>
-                  <span className="text-[11px] text-slate-500">
-                    {form.title_page_layout.intro.paragraph_spacing}px
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={32}
-                  step={1}
-                  value={form.title_page_layout.intro.paragraph_spacing}
-                  onChange={(e) =>
-                    updateLayout({ intro: { paragraph_spacing: Number(e.target.value) } })
-                  }
-                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
-                />
-              </div>
-
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-slate-600">Gap Below Logo</label>
@@ -582,11 +642,6 @@ export function PropertiesPanel({
                 size="sm"
                 onClick={() =>
                   updateLayout({
-                      intro: {
-                        margin_top: 0,
-                        margin_bottom: 0,
-                        paragraph_spacing: DEFAULT_INTRO_PARAGRAPH_SPACING,
-                      },
                     spacing: {
                       below_logo: DEFAULT_TITLE_LOGO_GAP,
                       below_intro: 0,

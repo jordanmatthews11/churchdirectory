@@ -11,6 +11,8 @@ export interface TitlePageLayout {
     color?: string
     bold?: boolean
     italic?: boolean
+    margin_left?: number
+    margin_right?: number
     margin_top?: number
     margin_bottom?: number
     paragraph_spacing?: number
