@@ -45,6 +45,7 @@ export function BackPageEditor({ initialHtml, onSettingsSaved, onPreviewChange }
       <RichTextEditor
         initialHtml={draftHtml}
         minHeight={620}
+        supportImages
         onChange={(html) => {
           setDraftHtml(html)
           onPreviewChange?.({ back_page_html: html })

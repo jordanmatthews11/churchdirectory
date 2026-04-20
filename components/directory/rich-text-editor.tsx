@@ -1,34 +1,44 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
-import { EditorContent, useEditor } from '@tiptap/react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import Color from '@tiptap/extension-color'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 import { FontSize, TextStyle } from '@tiptap/extension-text-style'
 import StarterKit from '@tiptap/starter-kit'
+import { EditorContent, type Editor, useEditor } from '@tiptap/react'
 import {
   AlignCenter,
   AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
+  ImagePlus,
   Italic,
   List,
   ListOrdered,
   Underline as UnderlineIcon,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
+import {
+  BACK_PAGE_IMAGE_NODE_NAME,
+  BackPageImage,
+  DEFAULT_BACK_PAGE_IMAGE_WIDTH,
+} from '@/components/directory/back-page-image-node'
 import { Button } from '@/components/ui/button'
+import { uploadDirectoryAsset } from '@/lib/storage'
 
 const DEFAULT_EMPTY_HTML = '<p></p>'
 const DEFAULT_COLOR = '#111827'
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 interface RichTextEditorProps {
   initialHtml: string | null | undefined
   onChange?: (html: string) => void
   minHeight?: number
   emptyHtml?: string
+  supportImages?: boolean
 }
 
 function toHexSegment(value: number) {
@@ -56,13 +66,164 @@ function getToolbarButtonClass(isActive: boolean) {
   return isActive ? 'bg-[#E8F0DA] text-[#46612C]' : ''
 }
 
+function normalizeAltText(fileName: string) {
+  return fileName.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim()
+}
+
+function clampImageWidth(width: number) {
+  return Math.max(10, Math.min(100, Math.round(width)))
+}
+
+function findBackPageImagePosition(editor: Editor, uploadId: string) {
+  let match: number | null = null
+
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === BACK_PAGE_IMAGE_NODE_NAME && node.attrs.uploadId === uploadId) {
+      match = pos
+      return false
+    }
+    return true
+  })
+
+  return match
+}
+
+function updateNodeAttrsAtPos(editor: Editor, position: number, attrs: Record<string, unknown>) {
+  const node = editor.state.doc.nodeAt(position)
+  if (!node) return false
+
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(position, undefined, { ...node.attrs, ...attrs }))
+  return true
+}
+
+function removeNodeAtPos(editor: Editor, position: number) {
+  const node = editor.state.doc.nodeAt(position)
+  if (!node) return false
+
+  editor.view.dispatch(editor.state.tr.delete(position, position + node.nodeSize))
+  return true
+}
+
+function validateImageFile(file: File) {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please upload an image file.')
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new Error('Image is too large. Please upload one smaller than 8 MB.')
+  }
+}
+
 export function RichTextEditor({
   initialHtml,
   onChange,
   minHeight = 320,
   emptyHtml = DEFAULT_EMPTY_HTML,
+  supportImages = false,
 }: RichTextEditorProps) {
   const normalizedInitialHtml = initialHtml && initialHtml.trim() ? initialHtml : emptyHtml
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editorRef = useRef<Editor | null>(null)
+
+  const uploadAndInsertImage = useCallback(
+    async ({
+      file,
+      position,
+      replaceAt,
+      preserve,
+    }: {
+      file: File
+      position?: number
+      replaceAt?: number
+      preserve?: {
+        src?: string
+        width?: number
+        align?: 'left' | 'center' | 'right'
+        alt?: string | null
+      }
+    }) => {
+      const editor = editorRef.current
+      if (!editor) return
+
+      validateImageFile(file)
+
+      const previewUrl = URL.createObjectURL(file)
+      const uploadId = crypto.randomUUID()
+      const width = clampImageWidth(preserve?.width ?? DEFAULT_BACK_PAGE_IMAGE_WIDTH)
+      const align = preserve?.align ?? 'center'
+      const alt = preserve?.alt ?? normalizeAltText(file.name)
+      const previousSrc = preserve?.src ?? null
+      const previousAlt = preserve?.alt ?? ''
+
+      if (typeof replaceAt === 'number') {
+        updateNodeAttrsAtPos(editor, replaceAt, {
+          src: previewUrl,
+          alt,
+          width,
+          align,
+          uploading: true,
+          uploadId,
+        })
+      } else {
+        const content = {
+          type: BACK_PAGE_IMAGE_NODE_NAME,
+          attrs: {
+            src: previewUrl,
+            alt,
+            width,
+            align,
+            uploading: true,
+            uploadId,
+          },
+        }
+
+        if (typeof position === 'number') {
+          editor.chain().focus().insertContentAt(position, content).run()
+        } else {
+          editor.chain().focus().insertContent(content).run()
+        }
+      }
+
+      const toastId = toast.loading('Uploading image...')
+
+      try {
+        const url = await uploadDirectoryAsset(file, 'back-page-image')
+        const nodePosition = findBackPageImagePosition(editor, uploadId)
+        if (nodePosition !== null) {
+          updateNodeAttrsAtPos(editor, nodePosition, {
+            src: url,
+            alt,
+            width,
+            align,
+            uploading: false,
+            uploadId: null,
+          })
+        }
+        toast.success('Image uploaded', { id: toastId })
+      } catch (error) {
+        if (typeof replaceAt === 'number') {
+          updateNodeAttrsAtPos(editor, replaceAt, {
+            src: previousSrc,
+            alt: previousAlt,
+            width,
+            align,
+            uploading: false,
+            uploadId: null,
+          })
+        } else {
+          const nodePosition = findBackPageImagePosition(editor, uploadId)
+          if (nodePosition !== null) {
+            removeNodeAtPos(editor, nodePosition)
+          }
+        }
+
+        toast.error(error instanceof Error ? error.message : 'Failed to upload image.', { id: toastId })
+        throw error
+      } finally {
+        URL.revokeObjectURL(previewUrl)
+      }
+    },
+    []
+  )
 
   const editor = useEditor({
     extensions: [
@@ -74,6 +235,13 @@ export function RichTextEditor({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      ...(supportImages
+        ? [
+            BackPageImage.configure({
+              uploadImage: uploadAndInsertImage,
+            }),
+          ]
+        : []),
     ],
     content: normalizedInitialHtml,
     editorProps: {
@@ -82,6 +250,36 @@ export function RichTextEditor({
           'directory-rich-text-editor rounded-lg border border-slate-200 bg-white p-5 text-slate-800 focus:outline-none',
         style: `min-height: ${minHeight}px;`,
       },
+      handleDrop: (_view, event) => {
+        if (!supportImages) return false
+
+        const files = Array.from(event.dataTransfer?.files ?? []).filter((file) => file.type.startsWith('image/'))
+        if (!files.length) return false
+
+        event.preventDefault()
+        const editor = editorRef.current
+        if (!editor) return true
+
+        const coords = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })
+        void uploadAndInsertImage({ file: files[0], position: coords?.pos })
+        return true
+      },
+      handlePaste: (_view, event) => {
+        if (!supportImages) return false
+
+        const files = Array.from(event.clipboardData?.files ?? []).filter((file) => file.type.startsWith('image/'))
+        if (!files.length) return false
+
+        event.preventDefault()
+        void uploadAndInsertImage({ file: files[0] })
+        return true
+      },
+    },
+    onCreate: ({ editor: createdEditor }) => {
+      editorRef.current = createdEditor
+    },
+    onDestroy: () => {
+      editorRef.current = null
     },
     onUpdate: ({ editor: nextEditor }) => {
       onChange?.(nextEditor.getHTML())
@@ -214,6 +412,26 @@ export function RichTextEditor({
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
+
+        {supportImages ? (
+          <>
+            <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <ImagePlus className="h-4 w-4" />
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ''
+                if (!file) return
+                void uploadAndInsertImage({ file })
+              }}
+            />
+          </>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-600">

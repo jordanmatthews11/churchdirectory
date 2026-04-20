@@ -292,6 +292,111 @@
   margin-bottom: 0.06in;
 }
 
+.back-page-content .back-page-image,
+.directory-rich-text-editor .back-page-image {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.14in;
+}
+
+.back-page-content .back-page-image img,
+.directory-rich-text-editor .back-page-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.back-page-content .back-page-image[data-align='left'] img,
+.directory-rich-text-editor .back-page-image[data-align='left'] img {
+  margin: 0 auto 0 0;
+}
+
+.back-page-content .back-page-image[data-align='center'] img,
+.directory-rich-text-editor .back-page-image[data-align='center'] img {
+  margin: 0 auto;
+}
+
+.back-page-content .back-page-image[data-align='right'] img,
+.directory-rich-text-editor .back-page-image[data-align='right'] img {
+  margin: 0 0 0 auto;
+}
+
+.back-page-image-node {
+  position: relative;
+}
+
+.directory-rich-text-editor .back-page-image {
+  position: relative;
+}
+
+.directory-rich-text-editor .back-page-image-toolbar {
+  position: absolute;
+  top: -2.75rem;
+  left: 0;
+  z-index: 20;
+}
+
+.directory-rich-text-editor .back-page-image-frame {
+  position: relative;
+  max-width: 100%;
+}
+
+.directory-rich-text-editor .back-page-image.is-selected .back-page-image-frame::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid #7a9c49;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.directory-rich-text-editor .back-page-image-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: #7a9c49;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+  z-index: 25;
+}
+
+.directory-rich-text-editor .back-page-image-handle-nw,
+.directory-rich-text-editor .back-page-image-handle-ne {
+  top: -6px;
+}
+
+.directory-rich-text-editor .back-page-image-handle-sw,
+.directory-rich-text-editor .back-page-image-handle-se {
+  bottom: -6px;
+}
+
+.directory-rich-text-editor .back-page-image-handle-nw,
+.directory-rich-text-editor .back-page-image-handle-sw {
+  left: -6px;
+  cursor: ew-resize;
+}
+
+.directory-rich-text-editor .back-page-image-handle-ne,
+.directory-rich-text-editor .back-page-image-handle-se {
+  right: -6px;
+  cursor: ew-resize;
+}
+
+.directory-rich-text-editor .back-page-image-uploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 .back-page-editor p.is-editor-empty:first-child::before,
 .directory-rich-text-editor p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
