@@ -88,6 +88,7 @@ export function TitlePage({
             <div className="relative h-full w-full" style={{ transform: `translateY(${logoOffsetY}px)` }}>
               <div
                 className="relative h-full w-full overflow-hidden rounded-xl"
+                data-export-photo="true"
                 style={{
                   transform: `scale(${logoScale / 100})`,
                   transformOrigin: 'center top',
@@ -163,7 +164,10 @@ export function TitlePage({
                 transformOrigin: 'center bottom',
               }}
             >
-              <div className="group relative h-[340px] w-[470px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <div
+                className="group relative h-[340px] w-[470px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                data-export-photo="true"
+              >
                 {settings.title_image_url ? (
                   <button
                     type="button"

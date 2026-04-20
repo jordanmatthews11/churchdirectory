@@ -156,20 +156,25 @@ async function proxyImagesToDataUrls(container: HTMLElement): Promise<() => void
 
 /**
  * html2canvas ignores object-fit / object-position, stretching images to fill
- * their container. Work around this by swapping each <img> inside
- * .directory-photo with a <div> that uses background-image (which html2canvas
- * does support). Must run after proxyImagesToDataUrls so src is same-origin.
+ * their container. Work around this by swapping each export photo <img> with a
+ * <div> that uses background-image (which html2canvas does support). Must run
+ * after proxyImagesToDataUrls so src is same-origin.
  */
 function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
   const entries: { img: HTMLImageElement; replacement: HTMLDivElement }[] = []
 
   const imgs = Array.from(
-    container.querySelectorAll<HTMLImageElement>('.directory-photo img')
+    container.querySelectorAll<HTMLImageElement>(
+      '.directory-photo img, [data-export-photo="true"] img'
+    )
   )
 
   for (const img of imgs) {
     const fitMode = img.classList.contains('object-contain') ? 'contain' : 'cover'
     const position = img.style.objectPosition || '50% 50%'
+    const transform = img.style.transform || ''
+    const transformOrigin = img.style.transformOrigin || ''
+    const clipPath = img.style.clipPath || ''
 
     const div = document.createElement('div')
     Object.assign(div.style, {
@@ -181,6 +186,9 @@ function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
       backgroundSize: fitMode,
       backgroundPosition: position,
       backgroundRepeat: 'no-repeat',
+      transform,
+      transformOrigin,
+      clipPath,
     })
 
     img.style.display = 'none'
