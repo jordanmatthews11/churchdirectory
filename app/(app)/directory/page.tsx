@@ -181,6 +181,24 @@ function isNoOpExportClipPath(value: string): boolean {
     .every((part) => part === '0' || part === '0%' || part === '0px')
 }
 
+function computeExportBackgroundSize(
+  imageWidth: number,
+  imageHeight: number,
+  containerWidth: number,
+  containerHeight: number,
+  mode: 'cover' | 'contain'
+): string {
+  if (imageWidth <= 0 || imageHeight <= 0 || containerWidth <= 0 || containerHeight <= 0) {
+    return mode
+  }
+
+  const scaleX = containerWidth / imageWidth
+  const scaleY = containerHeight / imageHeight
+  const scale = mode === 'cover' ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY)
+
+  return `${imageWidth * scale}px ${imageHeight * scale}px`
+}
+
 /**
  * html2canvas ignores object-fit / object-position, stretching images to fill
  * their container. Work around this by swapping each export photo <img> with a
@@ -202,6 +220,14 @@ function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
     const transform = img.style.transform || ''
     const transformOrigin = img.style.transformOrigin || ''
     const clipPath = img.style.clipPath || ''
+    const parent = img.parentElement
+    const backgroundSize = computeExportBackgroundSize(
+      img.naturalWidth || 0,
+      img.naturalHeight || 0,
+      parent?.clientWidth ?? 0,
+      parent?.clientHeight ?? 0,
+      fitMode
+    )
 
     const div = document.createElement('div')
     Object.assign(div.style, {
@@ -210,7 +236,7 @@ function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
       width: '100%',
       height: '100%',
       backgroundImage: `url(${img.src})`,
-      backgroundSize: fitMode,
+      backgroundSize,
       backgroundPosition: position,
       backgroundRepeat: 'no-repeat',
     })
