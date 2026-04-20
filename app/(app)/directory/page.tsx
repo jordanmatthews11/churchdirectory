@@ -158,55 +158,140 @@ function normalizeExportCssValue(value: string): string {
   return value.replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
-function isIdentityExportTransform(value: string): boolean {
+function parseObjectPositionPercent(value: string): { x: number; y: number } {
   const normalized = normalizeExportCssValue(value)
-  return (
-    normalized === '' ||
-    normalized === 'none' ||
-    normalized === 'scale(1)' ||
-    normalized === 'matrix(1, 0, 0, 1, 0, 0)'
-  )
+  if (!normalized) return { x: 50, y: 50 }
+
+  const keywordToPercent = (part: string, axis: 'x' | 'y'): number | null => {
+    if (part.endsWith('%')) {
+      const parsed = Number.parseFloat(part)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+    if (part === 'left' || part === 'top') return 0
+    if (part === 'center') return 50
+    if (part === 'right' || part === 'bottom') return 100
+    if (axis === 'x' && part === 'x-start') return 0
+    if (axis === 'x' && part === 'x-end') return 100
+    if (axis === 'y' && part === 'y-start') return 0
+    if (axis === 'y' && part === 'y-end') return 100
+    return null
+  }
+
+  const parts = normalized.split(/\s+/).filter(Boolean)
+  const x = keywordToPercent(parts[0] ?? '', 'x') ?? 50
+  const y = keywordToPercent(parts[1] ?? parts[0] ?? '', 'y') ?? 50
+  return { x, y }
 }
 
-function isNoOpExportClipPath(value: string): boolean {
+function parseScaleFromTransform(value: string): number {
   const normalized = normalizeExportCssValue(value)
-  if (normalized === '' || normalized === 'none') return true
+  if (!normalized || normalized === 'none') return 1
+
+  const scaleMatch = normalized.match(/^scale\(([^,)]+)(?:,\s*([^)]+))?\)$/)
+  if (scaleMatch) {
+    const x = Number.parseFloat(scaleMatch[1] ?? '')
+    const y = Number.parseFloat(scaleMatch[2] ?? scaleMatch[1] ?? '')
+    if (Number.isFinite(x) && Number.isFinite(y)) return (x + y) / 2
+    if (Number.isFinite(x)) return x
+  }
+
+  const matrixMatch = normalized.match(/^matrix\((.+)\)$/)
+  if (matrixMatch) {
+    const values = matrixMatch[1].split(',').map((part) => Number.parseFloat(part.trim()))
+    const [a, b, c, d] = values
+    if ([a, b, c, d].every((part) => Number.isFinite(part))) {
+      const scaleX = Math.hypot(a!, b!)
+      const scaleY = Math.hypot(c!, d!)
+      return (scaleX + scaleY) / 2
+    }
+  }
+
+  return 1
+}
+
+function parseInsetClip(
+  value: string,
+  containerWidth: number,
+  containerHeight: number
+): { x: number; y: number; w: number; h: number } | null {
+  const normalized = normalizeExportCssValue(value)
+  if (!normalized || normalized === 'none') return null
 
   const insetMatch = normalized.match(/^inset\((.+)\)$/)
-  if (!insetMatch) return false
+  if (!insetMatch) return null
 
-  return insetMatch[1]
+  const tokens = insetMatch[1]
+    .replace(/round\s+.+$/, '')
     .split(/\s+/)
     .filter(Boolean)
-    .every((part) => part === '0' || part === '0%' || part === '0px')
+
+  if (tokens.length === 0) return null
+
+  const [topToken, rightToken = topToken, bottomToken = topToken, leftToken = rightToken] = tokens
+
+  const parseInsetValue = (token: string, axisSize: number): number | null => {
+    if (token.endsWith('%')) {
+      const percent = Number.parseFloat(token)
+      return Number.isFinite(percent) ? (axisSize * percent) / 100 : null
+    }
+    if (token.endsWith('px') || /^-?\d*\.?\d+$/.test(token)) {
+      const pixels = Number.parseFloat(token)
+      return Number.isFinite(pixels) ? pixels : null
+    }
+    return null
+  }
+
+  const top = parseInsetValue(topToken, containerHeight)
+  const right = parseInsetValue(rightToken, containerWidth)
+  const bottom = parseInsetValue(bottomToken, containerHeight)
+  const left = parseInsetValue(leftToken, containerWidth)
+  if ([top, right, bottom, left].some((part) => part === null)) return null
+
+  const x = Math.max(0, left!)
+  const y = Math.max(0, top!)
+  const w = Math.max(0, containerWidth - left! - right!)
+  const h = Math.max(0, containerHeight - top! - bottom!)
+  return { x, y, w, h }
 }
 
-function computeExportBackgroundSize(
+function computeFitDraw(
   imageWidth: number,
   imageHeight: number,
   containerWidth: number,
   containerHeight: number,
-  mode: 'cover' | 'contain'
-): string {
+  mode: 'cover' | 'contain',
+  zoom: number,
+  positionXPercent: number,
+  positionYPercent: number
+): { dx: number; dy: number; dw: number; dh: number } {
   if (imageWidth <= 0 || imageHeight <= 0 || containerWidth <= 0 || containerHeight <= 0) {
-    return mode
+    return {
+      dx: 0,
+      dy: 0,
+      dw: containerWidth,
+      dh: containerHeight,
+    }
   }
 
   const scaleX = containerWidth / imageWidth
   const scaleY = containerHeight / imageHeight
-  const scale = mode === 'cover' ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY)
+  const scale = (mode === 'cover' ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY)) * zoom
+  const dw = imageWidth * scale
+  const dh = imageHeight * scale
+  const dx = (containerWidth - dw) * (positionXPercent / 100)
+  const dy = (containerHeight - dh) * (positionYPercent / 100)
 
-  return `${imageWidth * scale}px ${imageHeight * scale}px`
+  return { dx, dy, dw, dh }
 }
 
 /**
  * html2canvas ignores object-fit / object-position, stretching images to fill
  * their container. Work around this by swapping each export photo <img> with a
- * <div> that uses background-image (which html2canvas does support). Must run
+ * pre-rasterized <canvas> so html2canvas copies the final pixels directly. Must run
  * after proxyImagesToDataUrls so src is same-origin.
  */
-function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
-  const entries: { img: HTMLImageElement; replacement: HTMLDivElement }[] = []
+async function replaceImgsWithCanvases(container: HTMLElement): Promise<() => void> {
+  const entries: { img: HTMLImageElement; replacement: HTMLCanvasElement }[] = []
 
   const imgs = Array.from(
     container.querySelectorAll<HTMLImageElement>(
@@ -215,44 +300,63 @@ function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
   )
 
   for (const img of imgs) {
-    const fitMode = img.classList.contains('object-contain') ? 'contain' : 'cover'
-    const position = img.style.objectPosition || '50% 50%'
-    const transform = img.style.transform || ''
-    const transformOrigin = img.style.transformOrigin || ''
-    const clipPath = img.style.clipPath || ''
     const parent = img.parentElement
-    const backgroundSize = computeExportBackgroundSize(
-      img.naturalWidth || 0,
-      img.naturalHeight || 0,
-      parent?.clientWidth ?? 0,
-      parent?.clientHeight ?? 0,
-      fitMode
-    )
+    if (!parent) continue
 
-    const div = document.createElement('div')
-    Object.assign(div.style, {
+    const containerWidth = parent.clientWidth
+    const containerHeight = parent.clientHeight
+    if (containerWidth <= 0 || containerHeight <= 0) continue
+
+    await img.decode().catch(() => {})
+
+    const imageWidth = img.naturalWidth || 0
+    const imageHeight = img.naturalHeight || 0
+    if (imageWidth <= 0 || imageHeight <= 0) continue
+
+    const fitMode = img.classList.contains('object-contain') ? 'contain' : 'cover'
+    const zoom = parseScaleFromTransform(img.style.transform || '')
+    const position = parseObjectPositionPercent(img.style.objectPosition || '')
+    const dpr = Math.min(window.devicePixelRatio || 1, 3)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(containerWidth * dpr))
+    canvas.height = Math.max(1, Math.round(containerHeight * dpr))
+    Object.assign(canvas.style, {
       position: 'absolute',
       inset: '0',
       width: '100%',
       height: '100%',
-      backgroundImage: `url(${img.src})`,
-      backgroundSize,
-      backgroundPosition: position,
-      backgroundRepeat: 'no-repeat',
+      display: 'block',
     })
 
-    if (!isIdentityExportTransform(transform)) {
-      div.style.transform = transform
-      if (transformOrigin) div.style.transformOrigin = transformOrigin
+    const context = canvas.getContext('2d')
+    if (!context) continue
+    context.scale(dpr, dpr)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+
+    const clipRect = parseInsetClip(img.style.clipPath || '', containerWidth, containerHeight)
+    if (clipRect) {
+      context.beginPath()
+      context.rect(clipRect.x, clipRect.y, clipRect.w, clipRect.h)
+      context.clip()
     }
 
-    if (!isNoOpExportClipPath(clipPath)) {
-      div.style.clipPath = clipPath
-    }
+    const { dx, dy, dw, dh } = computeFitDraw(
+      imageWidth,
+      imageHeight,
+      containerWidth,
+      containerHeight,
+      fitMode,
+      zoom,
+      position.x,
+      position.y
+    )
+    context.drawImage(img, dx, dy, dw, dh)
 
     img.style.display = 'none'
-    img.parentElement!.appendChild(div)
-    entries.push({ img, replacement: div })
+    parent.appendChild(canvas)
+    entries.push({ img, replacement: canvas })
   }
 
   return () => {
@@ -357,8 +461,8 @@ export default function DirectoryPage() {
     // Convert cross-origin images to same-origin data URLs so html2canvas can render them.
     const restoreImages = await proxyImagesToDataUrls(container)
 
-    // Swap <img> tags for background-image <div>s so html2canvas respects object-fit.
-    const restoreBackgrounds = replaceImgsWithBackgrounds(container)
+    // Swap <img> tags for pre-rasterized canvases so html2canvas copies the final fit directly.
+    const restoreCanvases = await replaceImgsWithCanvases(container)
 
     // Inline computed RGB colors while original stylesheets are still active,
     // so getComputedStyle returns real colors (not the 'transparent' replacements).
@@ -396,7 +500,7 @@ export default function DirectoryPage() {
     } finally {
       restoreStyles(inject, snapshots)
       restoreInlineStyles()
-      restoreBackgrounds()
+      restoreCanvases()
       restoreImages()
     }
   }
