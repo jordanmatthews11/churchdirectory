@@ -154,6 +154,33 @@ async function proxyImagesToDataUrls(container: HTMLElement): Promise<() => void
   }
 }
 
+function normalizeExportCssValue(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function isIdentityExportTransform(value: string): boolean {
+  const normalized = normalizeExportCssValue(value)
+  return (
+    normalized === '' ||
+    normalized === 'none' ||
+    normalized === 'scale(1)' ||
+    normalized === 'matrix(1, 0, 0, 1, 0, 0)'
+  )
+}
+
+function isNoOpExportClipPath(value: string): boolean {
+  const normalized = normalizeExportCssValue(value)
+  if (normalized === '' || normalized === 'none') return true
+
+  const insetMatch = normalized.match(/^inset\((.+)\)$/)
+  if (!insetMatch) return false
+
+  return insetMatch[1]
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((part) => part === '0' || part === '0%' || part === '0px')
+}
+
 /**
  * html2canvas ignores object-fit / object-position, stretching images to fill
  * their container. Work around this by swapping each export photo <img> with a
@@ -186,10 +213,16 @@ function replaceImgsWithBackgrounds(container: HTMLElement): () => void {
       backgroundSize: fitMode,
       backgroundPosition: position,
       backgroundRepeat: 'no-repeat',
-      transform,
-      transformOrigin,
-      clipPath,
     })
+
+    if (!isIdentityExportTransform(transform)) {
+      div.style.transform = transform
+      if (transformOrigin) div.style.transformOrigin = transformOrigin
+    }
+
+    if (!isNoOpExportClipPath(clipPath)) {
+      div.style.clipPath = clipPath
+    }
 
     img.style.display = 'none'
     img.parentElement!.appendChild(div)

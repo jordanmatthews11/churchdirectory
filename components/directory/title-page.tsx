@@ -37,6 +37,7 @@ export function TitlePage({
   const logoCropBottom = settings.logo_crop_bottom ?? 0
   const logoCropLeft = settings.logo_crop_left ?? 0
   const logoCropRight = settings.logo_crop_right ?? 0
+  const hasLogoCrop = logoCropTop > 0 || logoCropBottom > 0 || logoCropLeft > 0 || logoCropRight > 0
   const layout = resolveTitlePageLayout(settings.title_page_layout)
   const hasRichIntro = Boolean(layout.intro.intro_html && layout.intro.intro_html.trim() && layout.intro.intro_html !== '<p></p>')
   const richIntroStyle = {
@@ -100,9 +101,13 @@ export function TitlePage({
                     alt="Opening header"
                     fill
                     className="object-cover"
-                    style={{
-                      clipPath: `inset(${logoCropTop}% ${logoCropRight}% ${logoCropBottom}% ${logoCropLeft}%)`,
-                    }}
+                    style={
+                      hasLogoCrop
+                        ? {
+                            clipPath: `inset(${logoCropTop}% ${logoCropRight}% ${logoCropBottom}% ${logoCropLeft}%)`,
+                          }
+                        : undefined
+                    }
                     sizes="470px"
                   />
                 ) : (
