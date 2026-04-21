@@ -564,6 +564,20 @@ export default function DirectoryPage() {
         canvases.push(createBlankPageCanvas(canvases[0]!))
       }
 
+      type BookletPageKind = 'cover' | 'title' | 'grid' | 'leadership' | 'back' | 'blank'
+
+      const totalGridPagesForExport = getDirectoryPageCount(families.length)
+      const pageKinds: BookletPageKind[] = [
+        'cover',
+        'title',
+        ...Array.from({ length: totalGridPagesForExport }, () => 'grid' as const),
+        'leadership',
+        'back',
+      ]
+      while (pageKinds.length < canvases.length) {
+        pageKinds.push('blank')
+      }
+
       const n = canvases.length
       const OUTER_MARGIN = 0.125
       const GUTTER = 0.125
@@ -573,9 +587,12 @@ export default function DirectoryPage() {
       const scaleFactor = Math.min(usableW / 8.5, SHEET_H / 11)
       const imgW = 8.5 * scaleFactor
       const imgH = 11 * scaleFactor
-      const yOff = OUTER_MARGIN
       const leftX = OUTER_MARGIN + (usableW - imgW) / 2
       const rightX = PANEL_W + GUTTER + (usableW - imgW) / 2
+
+      function yOffForKind(kind: BookletPageKind): number {
+        return kind === 'grid' ? (SHEET_H - imgH) / 2 : OUTER_MARGIN
+      }
 
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' })
       const sheetCount = n / 4
@@ -595,14 +612,14 @@ export default function DirectoryPage() {
 
         const imgL_front = canvases[fl]!.toDataURL('image/jpeg', 0.95)
         const imgR_front = canvases[fr]!.toDataURL('image/jpeg', 0.95)
-        pdf.addImage(imgL_front, 'JPEG', leftX, yOff, imgW, imgH)
-        pdf.addImage(imgR_front, 'JPEG', rightX, yOff, imgW, imgH)
+        pdf.addImage(imgL_front, 'JPEG', leftX, yOffForKind(pageKinds[fl]!), imgW, imgH)
+        pdf.addImage(imgR_front, 'JPEG', rightX, yOffForKind(pageKinds[fr]!), imgW, imgH)
 
         pdf.addPage('letter', 'l')
         const imgL_back = canvases[bl]!.toDataURL('image/jpeg', 0.95)
         const imgR_back = canvases[br]!.toDataURL('image/jpeg', 0.95)
-        pdf.addImage(imgL_back, 'JPEG', leftX, yOff, imgW, imgH)
-        pdf.addImage(imgR_back, 'JPEG', rightX, yOff, imgW, imgH)
+        pdf.addImage(imgL_back, 'JPEG', leftX, yOffForKind(pageKinds[bl]!), imgW, imgH)
+        pdf.addImage(imgR_back, 'JPEG', rightX, yOffForKind(pageKinds[br]!), imgW, imgH)
       }
 
       console.log(
