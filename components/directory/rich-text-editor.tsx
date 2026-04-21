@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import Color from '@tiptap/extension-color'
 import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
 import { FontSize, TextStyle } from '@tiptap/extension-text-style'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, type Editor, useEditor } from '@tiptap/react'
@@ -228,7 +227,6 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Underline,
       TextStyle,
       FontSize,
       Color,

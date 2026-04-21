@@ -244,6 +244,7 @@ export async function updateDirectorySettings(
       | 'date_label'
       | 'title_page_layout'
       | 'back_page_html'
+      | 'opening_page_html'
       | 'leadership_data'
     >
   >
