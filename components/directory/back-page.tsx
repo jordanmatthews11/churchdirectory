@@ -7,8 +7,9 @@ interface BackPageProps {
   settings: DirectorySettings
 }
 
-function toInches(value: number | null | undefined) {
-  return typeof value === 'number' ? `${value}in` : undefined
+function toInches(value: number | string | null | undefined) {
+  const parsedValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  return Number.isFinite(parsedValue) ? `${parsedValue}in` : undefined
 }
 
 export function BackPage({ settings }: BackPageProps) {

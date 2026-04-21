@@ -573,7 +573,7 @@ export default function DirectoryPage() {
       const scaleFactor = Math.min(usableW / 8.5, SHEET_H / 11)
       const imgW = 8.5 * scaleFactor
       const imgH = 11 * scaleFactor
-      const yOff = (SHEET_H - imgH) / 2
+      const yOff = OUTER_MARGIN
       const leftX = OUTER_MARGIN + (usableW - imgW) / 2
       const rightX = PANEL_W + GUTTER + (usableW - imgW) / 2
 

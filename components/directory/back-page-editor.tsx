@@ -10,7 +10,7 @@ import { RichTextEditor } from '@/components/directory/rich-text-editor'
 
 const EMPTY_BACK_PAGE_HTML = '<p></p>'
 const DEFAULT_PAGE_MARGIN = 0.65
-const MIN_PAGE_MARGIN = 0.25
+const MIN_PAGE_MARGIN = 0
 const MAX_PAGE_MARGIN = 1.5
 const PAGE_MARGIN_STEP = 0.05
 
@@ -22,8 +22,9 @@ interface BackPageEditorProps {
   onPreviewChange?: (values: Partial<DirectorySettings>) => void
 }
 
-function normalizeMargin(value: number | null | undefined) {
-  return typeof value === 'number' ? value : DEFAULT_PAGE_MARGIN
+function normalizeMargin(value: number | string | null | undefined) {
+  const parsedValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  return Number.isFinite(parsedValue) ? parsedValue : DEFAULT_PAGE_MARGIN
 }
 
 function formatMargin(value: number) {
@@ -135,6 +136,10 @@ export function BackPageEditor({
             className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-[#7A9C49]"
           />
         </div>
+
+        <p className="text-xs text-slate-500">
+          Note: the Book PDF adds whitespace at the bottom of each panel because the booklet uses a half-letter page shape.
+        </p>
 
         <Button
           type="button"
