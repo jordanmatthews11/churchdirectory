@@ -138,6 +138,10 @@ export interface DirectorySettings {
   date_label: string
   back_page_html: string | null
   opening_page_html?: string | null
+  opening_page_margin_top?: number | null
+  opening_page_margin_bottom?: number | null
+  back_page_margin_top?: number | null
+  back_page_margin_bottom?: number | null
   title_page_layout?: TitlePageLayout | null
   /** Elders, deacons, deaconesses, staff list for the Leadership PDF page (JSONB). */
   leadership_data?: LeadershipData | null

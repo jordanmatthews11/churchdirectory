@@ -9,6 +9,29 @@ import {
 } from '@/lib/photo-presentation-db'
 import { DirectorySettings, Family, Member } from '@/types'
 
+const DIRECTORY_MARGIN_FIELDS = [
+  'opening_page_margin_top',
+  'opening_page_margin_bottom',
+  'back_page_margin_top',
+  'back_page_margin_bottom',
+] as const
+
+function isMissingDirectoryMarginColumnsError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const o = err as { message?: string; details?: string; hint?: string }
+  const combined = [o.message, o.details, o.hint].filter(Boolean).join(' ')
+  if (!/opening_page_margin_top|opening_page_margin_bottom|back_page_margin_top|back_page_margin_bottom/i.test(combined)) {
+    return false
+  }
+  return /column|schema cache|does not exist|could not find|PGRST/i.test(combined)
+}
+
+function omitDirectoryMarginFields<T extends Record<string, unknown>>(values: T): T {
+  const next = { ...values } as T & Record<(typeof DIRECTORY_MARGIN_FIELDS)[number], unknown>
+  for (const field of DIRECTORY_MARGIN_FIELDS) delete next[field]
+  return next as T
+}
+
 // ─── Families ────────────────────────────────────────────────────────────────
 
 export async function getFamilies(): Promise<Family[]> {
@@ -245,6 +268,10 @@ export async function updateDirectorySettings(
       | 'title_page_layout'
       | 'back_page_html'
       | 'opening_page_html'
+      | 'opening_page_margin_top'
+      | 'opening_page_margin_bottom'
+      | 'back_page_margin_top'
+      | 'back_page_margin_bottom'
       | 'leadership_data'
     >
   >
@@ -259,26 +286,47 @@ export async function updateDirectorySettings(
   }
 
   if (current) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('directory_settings')
       .update(nextValues)
       .eq('id', current.id)
       .select('*')
       .single()
 
-    if (error) throw error
+    if (error && isMissingDirectoryMarginColumnsError(error)) {
+      const retry = await supabase
+        .from('directory_settings')
+        .update(omitDirectoryMarginFields(nextValues))
+        .eq('id', current.id)
+        .select('*')
+        .single()
+      data = retry.data
+      error = retry.error
+    }
+
+    if (error) throw toThrownError(error)
     revalidatePath('/directory')
     revalidatePath('/leadership')
     return data
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('directory_settings')
     .insert(nextValues)
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error && isMissingDirectoryMarginColumnsError(error)) {
+    const retry = await supabase
+      .from('directory_settings')
+      .insert(omitDirectoryMarginFields(nextValues))
+      .select('*')
+      .single()
+    data = retry.data
+    error = retry.error
+  }
+
+  if (error) throw toThrownError(error)
   revalidatePath('/directory')
   revalidatePath('/leadership')
   return data

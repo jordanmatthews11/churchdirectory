@@ -10,6 +10,10 @@ export interface TitlePageProps {
   onSettingsSaved?: (values: Partial<DirectorySettings>) => Promise<void>
 }
 
+function toInches(value: number | null | undefined) {
+  return typeof value === 'number' ? `${value}in` : undefined
+}
+
 export function TitlePage({ settings, onSettingsSaved }: TitlePageProps) {
   const attemptedSeedRef = useRef<string | null>(null)
   const seededHtml = useMemo(() => buildOpeningPageHtmlFromLegacy(settings), [settings])
@@ -27,7 +31,16 @@ export function TitlePage({ settings, onSettingsSaved }: TitlePageProps) {
 
   return (
     <section className="directory-page directory-title-page break-after-page bg-white" aria-label="Opening page">
-      {hasContent ? <div className="opening-page-content" dangerouslySetInnerHTML={{ __html: html }} /> : null}
+      {hasContent ? (
+        <div
+          className="opening-page-content"
+          style={{
+            paddingTop: toInches(settings.opening_page_margin_top),
+            paddingBottom: toInches(settings.opening_page_margin_bottom),
+          }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : null}
     </section>
   )
 }

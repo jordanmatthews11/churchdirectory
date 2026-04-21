@@ -158,6 +158,8 @@ export function PropertiesPanel({
       {pageType === 'title' && (
         <OpeningPageEditor
           initialHtml={settings.opening_page_html ?? ''}
+          initialMarginTop={settings.opening_page_margin_top}
+          initialMarginBottom={settings.opening_page_margin_bottom}
           onSettingsSaved={onSettingsSaved}
           onPreviewChange={onPreviewChange}
         />
@@ -187,6 +189,8 @@ export function PropertiesPanel({
       {pageType === 'back' && (
         <BackPageEditor
           initialHtml={settings.back_page_html}
+          initialMarginTop={settings.back_page_margin_top}
+          initialMarginBottom={settings.back_page_margin_bottom}
           onSettingsSaved={onSettingsSaved}
           onPreviewChange={onPreviewChange}
         />
