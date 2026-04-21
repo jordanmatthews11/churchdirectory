@@ -591,7 +591,9 @@ export default function DirectoryPage() {
       const rightX = PANEL_W + GUTTER + (usableW - imgW) / 2
 
       function yOffForKind(kind: BookletPageKind): number {
-        return kind === 'grid' ? (SHEET_H - imgH) / 2 : OUTER_MARGIN
+        return kind === 'grid' || kind === 'cover' || kind === 'leadership'
+          ? (SHEET_H - imgH) / 2
+          : OUTER_MARGIN
       }
 
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' })
