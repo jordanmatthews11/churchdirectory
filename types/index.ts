@@ -137,6 +137,7 @@ export interface DirectorySettings {
   intro_text: string
   date_label: string
   back_page_html: string | null
+  opening_page_html?: string | null
   title_page_layout?: TitlePageLayout | null
   /** Elders, deacons, deaconesses, staff list for the Leadership PDF page (JSONB). */
   leadership_data?: LeadershipData | null

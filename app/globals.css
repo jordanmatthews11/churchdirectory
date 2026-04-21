@@ -247,7 +247,8 @@
   background: #ffffff;
 }
 
-.back-page-content {
+.back-page-content,
+.opening-page-content {
   position: absolute;
   inset: 0;
   padding: 0.65in;
@@ -258,41 +259,52 @@
   word-break: break-word;
 }
 
-.back-page-content p {
+.back-page-content p,
+.opening-page-content p {
   margin: 0 0 0.14in;
   min-height: 1em;
 }
 
 .back-page-content h1,
 .back-page-content h2,
-.back-page-content h3 {
+.back-page-content h3,
+.opening-page-content h1,
+.opening-page-content h2,
+.opening-page-content h3 {
   margin: 0 0 0.12in;
   line-height: 1.25;
 }
 
-.back-page-content h1 {
+.back-page-content h1,
+.opening-page-content h1 {
   font-size: 22pt;
 }
 
-.back-page-content h2 {
+.back-page-content h2,
+.opening-page-content h2 {
   font-size: 18pt;
 }
 
-.back-page-content h3 {
+.back-page-content h3,
+.opening-page-content h3 {
   font-size: 15pt;
 }
 
 .back-page-content ul,
-.back-page-content ol {
+.back-page-content ol,
+.opening-page-content ul,
+.opening-page-content ol {
   margin: 0 0 0.14in 0.24in;
   padding: 0;
 }
 
-.back-page-content li {
+.back-page-content li,
+.opening-page-content li {
   margin-bottom: 0.06in;
 }
 
 .back-page-content .back-page-image,
+.opening-page-content .back-page-image,
 .directory-rich-text-editor .back-page-image {
   display: block;
   width: 100%;
@@ -300,6 +312,7 @@
 }
 
 .back-page-content .back-page-image img,
+.opening-page-content .back-page-image img,
 .directory-rich-text-editor .back-page-image img {
   display: block;
   max-width: 100%;
@@ -308,16 +321,19 @@
 }
 
 .back-page-content .back-page-image[data-align='left'] img,
+.opening-page-content .back-page-image[data-align='left'] img,
 .directory-rich-text-editor .back-page-image[data-align='left'] img {
   margin: 0 auto 0 0;
 }
 
 .back-page-content .back-page-image[data-align='center'] img,
+.opening-page-content .back-page-image[data-align='center'] img,
 .directory-rich-text-editor .back-page-image[data-align='center'] img {
   margin: 0 auto;
 }
 
 .back-page-content .back-page-image[data-align='right'] img,
+.opening-page-content .back-page-image[data-align='right'] img,
 .directory-rich-text-editor .back-page-image[data-align='right'] img {
   margin: 0 0 0 auto;
 }
