@@ -546,7 +546,7 @@ async function replaceImgsWithCanvases(container: HTMLElement): Promise<() => vo
     container.querySelectorAll<HTMLImageElement>(
       '.directory-photo img, [data-export-photo="true"] img'
     )
-  )
+  ).filter((img) => window.getComputedStyle(img).position === 'absolute')
 
   for (const img of imgs) {
     const parent = img.parentElement
