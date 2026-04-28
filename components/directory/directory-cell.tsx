@@ -53,6 +53,11 @@ export function DirectoryCell({ family, placeholderUrl }: DirectoryCellProps) {
               src={placeholderUrl}
               alt="Family photo placeholder"
               className="absolute inset-0 h-full w-full object-cover"
+              style={{
+                inset: '2px',
+                width: 'calc(100% - 4px)',
+                height: 'calc(100% - 4px)',
+              }}
             />
             <div
               className="pointer-events-none absolute inset-0 border"
