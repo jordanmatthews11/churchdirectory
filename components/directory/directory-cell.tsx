@@ -47,17 +47,18 @@ export function DirectoryCell({ family, placeholderUrl }: DirectoryCellProps) {
             })}
           />
         ) : placeholderUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={placeholderUrl}
-            alt="Family photo placeholder"
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{
-              inset: '1px',
-              width: 'calc(100% - 2px)',
-              height: 'calc(100% - 2px)',
-            }}
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={placeholderUrl}
+              alt="Family photo placeholder"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              className="pointer-events-none absolute inset-0 border"
+              style={{ borderColor: 'rgba(15, 23, 42, 0.85)' }}
+            />
+          </>
         ) : (
           <div className="directory-photo-placeholder">
             <span className="directory-photo-initials">{getInitials(family.name)}</span>
