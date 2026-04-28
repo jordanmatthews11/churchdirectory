@@ -18,10 +18,11 @@ import { Button } from '@/components/ui/button'
 
 /** Modern CSS color functions html2canvas cannot parse. Handles one level of nested parens. */
 const COLOR_FN_RE = /\b(?:oklch|lab|oklab|lch|color)\((?:[^()]*|\([^()]*\))*\)/gi
-const HTML2CANVAS_SCALE = 5
+const HTML2CANVAS_SCALE = 4
 const PHOTO_OVERSAMPLE = 2
 const MAX_OVERLAY_IMAGE_EDGE = 4096
 const OVERLAY_JPEG_QUALITY = 0.99
+const PAGE_BITMAP_JPEG_QUALITY = 0.92
 
 type RectCss = { x: number; y: number; w: number; h: number }
 
@@ -776,18 +777,23 @@ export default function DirectoryPage() {
         orientation: 'portrait',
         unit: 'in',
         format: 'letter',
+        compress: true,
       })
 
       for (let i = 0; i < canvases.length; i += 1) {
-        const imgData = canvases[i].toDataURL('image/png')
+        const canvas = canvases[i]!
+        const imgData = canvas.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
         if (i > 0) pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11)
+        pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11)
         await addPhotoOverlays(pdf, overlaysByPage[i] ?? [], (spec) => ({
           x: spec.rectCss.x / 96,
           y: spec.rectCss.y / 96,
           w: spec.rectCss.w / 96,
           h: spec.rectCss.h / 96,
         }))
+        canvas.width = 0
+        canvas.height = 0
+        ;(canvases as Array<HTMLCanvasElement | null>)[i] = null
       }
 
       pdf.save(`church-directory-web-${new Date().toISOString().slice(0, 10)}.pdf`)
@@ -858,7 +864,7 @@ export default function DirectoryPage() {
           : OUTER_MARGIN
       }
 
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' })
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter', compress: true })
       const sheetCount = n / 4
 
       const pageMap: string[] = []
@@ -883,20 +889,32 @@ export default function DirectoryPage() {
         pageMap.push(`Sheet ${s + 1} front: ${fl + 1} | ${fr + 1}`)
         pageMap.push(`Sheet ${s + 1} back:  ${bl + 1} | ${br + 1}`)
 
-        const imgL_front = canvases[fl]!.toDataURL('image/png')
-        const imgR_front = canvases[fr]!.toDataURL('image/png')
-        pdf.addImage(imgL_front, 'PNG', leftX, yOffForKind(pageKinds[fl]!), imgW, imgH)
-        pdf.addImage(imgR_front, 'PNG', rightX, yOffForKind(pageKinds[fr]!), imgW, imgH)
+        const canvasLFront = canvases[fl]!
+        const canvasRFront = canvases[fr]!
+        const imgL_front = canvasLFront.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
+        const imgR_front = canvasRFront.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
+        pdf.addImage(imgL_front, 'JPEG', leftX, yOffForKind(pageKinds[fl]!), imgW, imgH)
+        pdf.addImage(imgR_front, 'JPEG', rightX, yOffForKind(pageKinds[fr]!), imgW, imgH)
         await placeOverlaysForPanel(fl, leftX, yOffForKind(pageKinds[fl]!))
         await placeOverlaysForPanel(fr, rightX, yOffForKind(pageKinds[fr]!))
 
         pdf.addPage('letter', 'l')
-        const imgL_back = canvases[bl]!.toDataURL('image/png')
-        const imgR_back = canvases[br]!.toDataURL('image/png')
-        pdf.addImage(imgL_back, 'PNG', leftX, yOffForKind(pageKinds[bl]!), imgW, imgH)
-        pdf.addImage(imgR_back, 'PNG', rightX, yOffForKind(pageKinds[br]!), imgW, imgH)
+        const canvasLBack = canvases[bl]!
+        const canvasRBack = canvases[br]!
+        const imgL_back = canvasLBack.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
+        const imgR_back = canvasRBack.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
+        pdf.addImage(imgL_back, 'JPEG', leftX, yOffForKind(pageKinds[bl]!), imgW, imgH)
+        pdf.addImage(imgR_back, 'JPEG', rightX, yOffForKind(pageKinds[br]!), imgW, imgH)
         await placeOverlaysForPanel(bl, leftX, yOffForKind(pageKinds[bl]!))
         await placeOverlaysForPanel(br, rightX, yOffForKind(pageKinds[br]!))
+
+        for (const idx of new Set([fl, fr, bl, br])) {
+          const canvas = canvases[idx]
+          if (!canvas) continue
+          canvas.width = 0
+          canvas.height = 0
+          ;(canvases as Array<HTMLCanvasElement | null>)[idx] = null
+        }
       }
 
       console.log(
