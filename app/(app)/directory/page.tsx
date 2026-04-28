@@ -628,6 +628,31 @@ function createBlankPageCanvas(sample: HTMLCanvasElement): HTMLCanvasElement {
   return c
 }
 
+function cropCanvasToAspect(source: HTMLCanvasElement, targetAspect: number): HTMLCanvasElement {
+  const sourceAspect = source.width / source.height
+  let sx = 0
+  let sy = 0
+  let sw = source.width
+  let sh = source.height
+
+  if (sourceAspect > targetAspect) {
+    sw = Math.max(1, Math.round(source.height * targetAspect))
+    sx = Math.max(0, Math.round((source.width - sw) / 2))
+  } else if (sourceAspect < targetAspect) {
+    sh = Math.max(1, Math.round(source.width / targetAspect))
+    sy = Math.max(0, Math.round((source.height - sh) / 2))
+  }
+
+  const cropped = document.createElement('canvas')
+  cropped.width = sw
+  cropped.height = sh
+  const ctx = cropped.getContext('2d')
+  if (ctx) {
+    ctx.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh)
+  }
+  return cropped
+}
+
 export default function DirectoryPage() {
   const [settings, setSettings] = useState<DirectorySettings | null>(null)
   const [families, setFamilies] = useState<Family[]>([])
@@ -857,11 +882,13 @@ export default function DirectoryPage() {
       const imgH = 11 * scaleFactor
       const leftX = OUTER_MARGIN + (usableW - imgW) / 2
       const rightX = PANEL_W + GUTTER + (usableW - imgW) / 2
+      const centeredPanelMargin = (SHEET_H - imgH) / 2
+      const coverYOff = centeredPanelMargin / 2
+      const coverImgH = SHEET_H - coverYOff * 2
+      const coverTargetAspect = imgW / coverImgH
 
       function yOffForKind(kind: BookletPageKind): number {
-        return kind === 'grid' || kind === 'cover' || kind === 'leadership'
-          ? (SHEET_H - imgH) / 2
-          : OUTER_MARGIN
+        return kind === 'grid' || kind === 'leadership' ? centeredPanelMargin : OUTER_MARGIN
       }
 
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter', compress: true })
@@ -870,12 +897,33 @@ export default function DirectoryPage() {
       const pageMap: string[] = []
 
       async function placeOverlaysForPanel(pageIndex: number, panelOriginX: number, panelOriginY: number) {
+        if (pageKinds[pageIndex] === 'cover') return
         await addPhotoOverlays(pdf, overlaysByPage[pageIndex] ?? [], (spec) => ({
           x: panelOriginX + (spec.rectCss.x / 96) * scaleFactor,
           y: panelOriginY + (spec.rectCss.y / 96) * scaleFactor,
           w: (spec.rectCss.w / 96) * scaleFactor,
           h: (spec.rectCss.h / 96) * scaleFactor,
         }))
+      }
+
+      function addPanelPageImage(pageIndex: number, panelX: number) {
+        const canvas = canvases[pageIndex]!
+        const kind = pageKinds[pageIndex]!
+
+        if (kind === 'cover') {
+          const croppedCover = cropCanvasToAspect(canvas, coverTargetAspect)
+          try {
+            const imgData = croppedCover.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
+            pdf.addImage(imgData, 'JPEG', panelX, coverYOff, imgW, coverImgH)
+          } finally {
+            croppedCover.width = 0
+            croppedCover.height = 0
+          }
+          return
+        }
+
+        const imgData = canvas.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
+        pdf.addImage(imgData, 'JPEG', panelX, yOffForKind(kind), imgW, imgH)
       }
 
       for (let s = 0; s < sheetCount; s += 1) {
@@ -891,20 +939,16 @@ export default function DirectoryPage() {
 
         const canvasLFront = canvases[fl]!
         const canvasRFront = canvases[fr]!
-        const imgL_front = canvasLFront.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
-        const imgR_front = canvasRFront.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
-        pdf.addImage(imgL_front, 'JPEG', leftX, yOffForKind(pageKinds[fl]!), imgW, imgH)
-        pdf.addImage(imgR_front, 'JPEG', rightX, yOffForKind(pageKinds[fr]!), imgW, imgH)
+        addPanelPageImage(fl, leftX)
+        addPanelPageImage(fr, rightX)
         await placeOverlaysForPanel(fl, leftX, yOffForKind(pageKinds[fl]!))
         await placeOverlaysForPanel(fr, rightX, yOffForKind(pageKinds[fr]!))
 
         pdf.addPage('letter', 'l')
         const canvasLBack = canvases[bl]!
         const canvasRBack = canvases[br]!
-        const imgL_back = canvasLBack.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
-        const imgR_back = canvasRBack.toDataURL('image/jpeg', PAGE_BITMAP_JPEG_QUALITY)
-        pdf.addImage(imgL_back, 'JPEG', leftX, yOffForKind(pageKinds[bl]!), imgW, imgH)
-        pdf.addImage(imgR_back, 'JPEG', rightX, yOffForKind(pageKinds[br]!), imgW, imgH)
+        addPanelPageImage(bl, leftX)
+        addPanelPageImage(br, rightX)
         await placeOverlaysForPanel(bl, leftX, yOffForKind(pageKinds[bl]!))
         await placeOverlaysForPanel(br, rightX, yOffForKind(pageKinds[br]!))
 
