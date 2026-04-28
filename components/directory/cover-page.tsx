@@ -9,7 +9,7 @@ export interface CoverPageProps {
 export function CoverPage({ settings }: CoverPageProps) {
   return (
     <section className="directory-page directory-cover-page relative overflow-hidden bg-white break-after-page">
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" data-export-photo="true">
         {settings.cover_image_url ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img

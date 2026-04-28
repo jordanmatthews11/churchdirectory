@@ -18,8 +18,24 @@ import { Button } from '@/components/ui/button'
 
 /** Modern CSS color functions html2canvas cannot parse. Handles one level of nested parens. */
 const COLOR_FN_RE = /\b(?:oklch|lab|oklab|lch|color)\((?:[^()]*|\([^()]*\))*\)/gi
-const HTML2CANVAS_SCALE = 4
-const PHOTO_OVERSAMPLE = 1.5
+const HTML2CANVAS_SCALE = 5
+const PHOTO_OVERSAMPLE = 2
+const MAX_OVERLAY_IMAGE_EDGE = 4096
+const OVERLAY_JPEG_QUALITY = 0.99
+
+type RectCss = { x: number; y: number; w: number; h: number }
+
+type PhotoOverlaySpec = {
+  pageIndex: number
+  rectCss: RectCss
+  origSrc: string
+  fitMode: 'cover' | 'contain' | 'fill'
+  zoom: number
+  posX: number
+  posY: number
+  clipCss: RectCss | null
+  sourceCrop: RectCss
+}
 
 function stripUnsupportedCssColors(css: string) {
   return css
@@ -256,6 +272,28 @@ function parseInsetClip(
   return { x, y, w, h }
 }
 
+function clampUnit(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(1, value))
+}
+
+function intersectRects(a: RectCss, b: RectCss): RectCss | null {
+  const x = Math.max(a.x, b.x)
+  const y = Math.max(a.y, b.y)
+  const right = Math.min(a.x + a.w, b.x + b.w)
+  const bottom = Math.min(a.y + a.h, b.y + b.h)
+  const w = right - x
+  const h = bottom - y
+  return w > 0 && h > 0 ? { x, y, w, h } : null
+}
+
+function normalizeObjectFit(value: string): 'cover' | 'contain' | 'fill' {
+  const normalized = normalizeExportCssValue(value)
+  if (normalized === 'cover') return 'cover'
+  if (normalized === 'contain' || normalized === 'scale-down') return 'contain'
+  return 'fill'
+}
+
 function computeFitDraw(
   imageWidth: number,
   imageHeight: number,
@@ -284,6 +322,214 @@ function computeFitDraw(
   const dy = (containerHeight - dh) * (positionYPercent / 100)
 
   return { dx, dy, dw, dh }
+}
+
+async function collectPhotoOverlaySpecs(container: HTMLElement): Promise<PhotoOverlaySpec[]> {
+  const pages = Array.from(container.querySelectorAll<HTMLElement>('.directory-page'))
+  const pageIndexByElement = new Map(pages.map((page, index) => [page, index] as const))
+  const imgs = Array.from(
+    container.querySelectorAll<HTMLImageElement>('.directory-photo img, [data-export-photo="true"] img[src]')
+  )
+  const specs: PhotoOverlaySpec[] = []
+
+  for (const img of imgs) {
+    const page = img.closest<HTMLElement>('.directory-page')
+    const pageIndex = page ? pageIndexByElement.get(page) : undefined
+    if (!page || pageIndex === undefined) continue
+
+    await img.decode().catch(() => {})
+
+    const imageWidth = img.naturalWidth || 0
+    const imageHeight = img.naturalHeight || 0
+    if (imageWidth <= 0 || imageHeight <= 0) continue
+
+    const computed = window.getComputedStyle(img)
+    const parent = img.parentElement
+    const useParentFrame = Boolean(
+      parent && computed.position === 'absolute' && parent.clientWidth > 0 && parent.clientHeight > 0
+    )
+    const frameEl = useParentFrame ? parent! : img
+    const frameRect = frameEl.getBoundingClientRect()
+    const pageRect = page.getBoundingClientRect()
+    const frameWidth = frameEl.clientWidth || frameRect.width
+    const frameHeight = frameEl.clientHeight || frameRect.height
+    if (frameWidth <= 0 || frameHeight <= 0) continue
+
+    const fitMode = normalizeObjectFit(computed.objectFit || '')
+    const zoom = parseScaleFromTransform(computed.transform || img.style.transform || '')
+    const position = parseObjectPositionPercent(computed.objectPosition || img.style.objectPosition || '')
+    const clipCss = parseInsetClip(computed.clipPath || img.style.clipPath || '', frameWidth, frameHeight)
+    const frameBounds: RectCss = { x: 0, y: 0, w: frameWidth, h: frameHeight }
+
+    let visibleRectInFrame = clipCss ?? frameBounds
+    let sourceCrop: RectCss = { x: 0, y: 0, w: 1, h: 1 }
+
+    if (fitMode === 'cover' || fitMode === 'contain') {
+      const drawRect = computeFitDraw(
+        imageWidth,
+        imageHeight,
+        frameWidth,
+        frameHeight,
+        fitMode,
+        zoom,
+        position.x,
+        position.y
+      )
+      const drawBounds: RectCss = { x: drawRect.dx, y: drawRect.dy, w: drawRect.dw, h: drawRect.dh }
+      const visibleRect = intersectRects(clipCss ?? frameBounds, drawBounds)
+      if (!visibleRect) continue
+      visibleRectInFrame = visibleRect
+
+      const cropX = clampUnit((visibleRect.x - drawRect.dx) / drawRect.dw)
+      const cropY = clampUnit((visibleRect.y - drawRect.dy) / drawRect.dh)
+      sourceCrop = {
+        x: cropX,
+        y: cropY,
+        w: Math.min(1 - cropX, Math.max(0, visibleRect.w / drawRect.dw)),
+        h: Math.min(1 - cropY, Math.max(0, visibleRect.h / drawRect.dh)),
+      }
+    } else if (clipCss) {
+      const cropX = clampUnit(clipCss.x / frameWidth)
+      const cropY = clampUnit(clipCss.y / frameHeight)
+      sourceCrop = {
+        x: cropX,
+        y: cropY,
+        w: Math.min(1 - cropX, Math.max(0, clipCss.w / frameWidth)),
+        h: Math.min(1 - cropY, Math.max(0, clipCss.h / frameHeight)),
+      }
+    }
+
+    if (visibleRectInFrame.w <= 0 || visibleRectInFrame.h <= 0 || sourceCrop.w <= 0 || sourceCrop.h <= 0) {
+      continue
+    }
+
+    specs.push({
+      pageIndex,
+      rectCss: {
+        x: frameRect.left - pageRect.left + visibleRectInFrame.x,
+        y: frameRect.top - pageRect.top + visibleRectInFrame.y,
+        w: visibleRectInFrame.w,
+        h: visibleRectInFrame.h,
+      },
+      origSrc: img.currentSrc || img.src,
+      fitMode,
+      zoom,
+      posX: position.x,
+      posY: position.y,
+      clipCss,
+      sourceCrop,
+    })
+  }
+
+  return specs
+}
+
+function groupPhotoOverlaySpecs(specs: PhotoOverlaySpec[], pageCount: number): PhotoOverlaySpec[][] {
+  const grouped = Array.from({ length: pageCount }, () => [] as PhotoOverlaySpec[])
+  for (const spec of specs) {
+    if (spec.pageIndex >= 0 && spec.pageIndex < grouped.length) grouped[spec.pageIndex]!.push(spec)
+  }
+  return grouped
+}
+
+async function getOverlayImageSource(src: string): Promise<{ resolvedSrc: string; revoke: (() => void) | null }> {
+  if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
+    return { resolvedSrc: src, revoke: null }
+  }
+
+  const parsed = new URL(src, window.location.href)
+  if (parsed.origin === window.location.origin) {
+    return { resolvedSrc: parsed.toString(), revoke: null }
+  }
+
+  const res = await fetch(`/api/image-proxy?url=${encodeURIComponent(src)}`)
+  if (!res.ok) {
+    throw new Error(`Image proxy failed with status ${res.status}`)
+  }
+
+  const blob = await res.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  return {
+    resolvedSrc: objectUrl,
+    revoke: () => URL.revokeObjectURL(objectUrl),
+  }
+}
+
+async function loadOverlayImage(src: string): Promise<HTMLImageElement> {
+  const img = new Image()
+  img.decoding = 'async'
+  img.src = src
+
+  if (!img.complete || img.naturalWidth <= 0) {
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('Failed to decode overlay image'))
+    })
+  } else {
+    await img.decode().catch(() => {})
+  }
+
+  return img
+}
+
+async function buildOverlayDataUrl(spec: PhotoOverlaySpec): Promise<string> {
+  const { resolvedSrc, revoke } = await getOverlayImageSource(spec.origSrc)
+
+  try {
+    const image = await loadOverlayImage(resolvedSrc)
+    const imageWidth = image.naturalWidth || image.width
+    const imageHeight = image.naturalHeight || image.height
+    if (imageWidth <= 0 || imageHeight <= 0) {
+      throw new Error('Overlay image has no natural size')
+    }
+
+    const sx = Math.max(0, Math.min(imageWidth - 1, Math.round(spec.sourceCrop.x * imageWidth)))
+    const sy = Math.max(0, Math.min(imageHeight - 1, Math.round(spec.sourceCrop.y * imageHeight)))
+    const sw = Math.max(1, Math.min(imageWidth - sx, Math.round(spec.sourceCrop.w * imageWidth)))
+    const sh = Math.max(1, Math.min(imageHeight - sy, Math.round(spec.sourceCrop.h * imageHeight)))
+    const outputScale = Math.min(1, MAX_OVERLAY_IMAGE_EDGE / Math.max(sw, sh))
+    const outputWidth = Math.max(1, Math.round(sw * outputScale))
+    const outputHeight = Math.max(1, Math.round(sh * outputScale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = outputWidth
+    canvas.height = outputHeight
+
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('Failed to create overlay canvas')
+    }
+
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, outputWidth, outputHeight)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(image, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight)
+
+    return canvas.toDataURL('image/jpeg', OVERLAY_JPEG_QUALITY)
+  } finally {
+    revoke?.()
+  }
+}
+
+async function addPhotoOverlays(
+  pdf: jsPDF,
+  specs: PhotoOverlaySpec[],
+  rectForSpec: (spec: PhotoOverlaySpec) => { x: number; y: number; w: number; h: number }
+) {
+  for (const spec of specs) {
+    try {
+      const target = rectForSpec(spec)
+      if (target.w <= 0 || target.h <= 0) continue
+      const dataUrl = await buildOverlayDataUrl(spec)
+      pdf.addImage(dataUrl, 'JPEG', target.x, target.y, target.w, target.h)
+    } catch (error) {
+      console.warn('Skipping full-resolution photo overlay', {
+        src: spec.origSrc,
+        error,
+      })
+    }
+  }
 }
 
 /**
@@ -456,8 +702,12 @@ export default function DirectoryPage() {
    * Rasterize each `.directory-page`. Sanitizes the *live* document stylesheets first — html2canvas parses them
    * before `onclone`, so the clone-only approach was insufficient for `lab()` / `oklch()` from Tailwind v4.
    */
-  async function renderPageCanvases(container: HTMLElement): Promise<HTMLCanvasElement[]> {
+  async function renderPageCanvases(
+    container: HTMLElement
+  ): Promise<{ canvases: HTMLCanvasElement[]; overlaysByPage: PhotoOverlaySpec[][] }> {
     const sanitizedCssText = collectSanitizedCss()
+    const overlaySpecs = await collectPhotoOverlaySpecs(container)
+    const pageCount = container.querySelectorAll('.directory-page').length
 
     // Convert cross-origin images to same-origin data URLs so html2canvas can render them.
     const restoreImages = await proxyImagesToDataUrls(container)
@@ -497,7 +747,10 @@ export default function DirectoryPage() {
         })
         canvases.push(canvas)
       }
-      return canvases
+      return {
+        canvases,
+        overlaysByPage: groupPhotoOverlaySpecs(overlaySpecs, pageCount),
+      }
     } finally {
       restoreStyles(inject, snapshots)
       restoreInlineStyles()
@@ -518,7 +771,7 @@ export default function DirectoryPage() {
 
       await new Promise((r) => setTimeout(r, 200))
 
-      const canvases = await renderPageCanvases(container)
+      const { canvases, overlaysByPage } = await renderPageCanvases(container)
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
@@ -529,6 +782,12 @@ export default function DirectoryPage() {
         const imgData = canvases[i].toDataURL('image/png')
         if (i > 0) pdf.addPage()
         pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11)
+        await addPhotoOverlays(pdf, overlaysByPage[i] ?? [], (spec) => ({
+          x: spec.rectCss.x / 96,
+          y: spec.rectCss.y / 96,
+          w: spec.rectCss.w / 96,
+          h: spec.rectCss.h / 96,
+        }))
       }
 
       pdf.save(`church-directory-web-${new Date().toISOString().slice(0, 10)}.pdf`)
@@ -561,9 +820,10 @@ export default function DirectoryPage() {
 
       await new Promise((r) => setTimeout(r, 200))
 
-      const canvases = await renderPageCanvases(container)
+      const { canvases, overlaysByPage } = await renderPageCanvases(container)
       while (canvases.length % 4 !== 0) {
         canvases.push(createBlankPageCanvas(canvases[0]!))
+        overlaysByPage.push([])
       }
 
       type BookletPageKind = 'cover' | 'title' | 'grid' | 'leadership' | 'back' | 'blank'
@@ -603,6 +863,15 @@ export default function DirectoryPage() {
 
       const pageMap: string[] = []
 
+      async function placeOverlaysForPanel(pageIndex: number, panelOriginX: number, panelOriginY: number) {
+        await addPhotoOverlays(pdf, overlaysByPage[pageIndex] ?? [], (spec) => ({
+          x: panelOriginX + (spec.rectCss.x / 96) * scaleFactor,
+          y: panelOriginY + (spec.rectCss.y / 96) * scaleFactor,
+          w: (spec.rectCss.w / 96) * scaleFactor,
+          h: (spec.rectCss.h / 96) * scaleFactor,
+        }))
+      }
+
       for (let s = 0; s < sheetCount; s += 1) {
         if (s > 0) pdf.addPage('letter', 'l')
 
@@ -618,12 +887,16 @@ export default function DirectoryPage() {
         const imgR_front = canvases[fr]!.toDataURL('image/png')
         pdf.addImage(imgL_front, 'PNG', leftX, yOffForKind(pageKinds[fl]!), imgW, imgH)
         pdf.addImage(imgR_front, 'PNG', rightX, yOffForKind(pageKinds[fr]!), imgW, imgH)
+        await placeOverlaysForPanel(fl, leftX, yOffForKind(pageKinds[fl]!))
+        await placeOverlaysForPanel(fr, rightX, yOffForKind(pageKinds[fr]!))
 
         pdf.addPage('letter', 'l')
         const imgL_back = canvases[bl]!.toDataURL('image/png')
         const imgR_back = canvases[br]!.toDataURL('image/png')
         pdf.addImage(imgL_back, 'PNG', leftX, yOffForKind(pageKinds[bl]!), imgW, imgH)
         pdf.addImage(imgR_back, 'PNG', rightX, yOffForKind(pageKinds[br]!), imgW, imgH)
+        await placeOverlaysForPanel(bl, leftX, yOffForKind(pageKinds[bl]!))
+        await placeOverlaysForPanel(br, rightX, yOffForKind(pageKinds[br]!))
       }
 
       console.log(

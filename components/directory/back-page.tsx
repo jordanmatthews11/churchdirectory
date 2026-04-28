@@ -20,6 +20,7 @@ export function BackPage({ settings }: BackPageProps) {
       {hasContent ? (
         <div
           className="back-page-content"
+          data-export-photo="true"
           style={{
             paddingTop: toInches(settings.back_page_margin_top),
             paddingBottom: toInches(settings.back_page_margin_bottom),

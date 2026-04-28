@@ -35,6 +35,7 @@ export function TitlePage({ settings, onSettingsSaved }: TitlePageProps) {
       {hasContent ? (
         <div
           className="opening-page-content"
+          data-export-photo="true"
           style={{
             paddingTop: toInches(settings.opening_page_margin_top),
             paddingBottom: toInches(settings.opening_page_margin_bottom),
